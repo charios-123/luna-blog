@@ -1,0 +1,41 @@
+# Binaries
+leaf-api
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Logs
+*.log
+logs/
+
+# Uploads
+uploads/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (if contains sensitive info)
+# config.yaml
+
+# Temporary files
+tmp/
+temp/
+.gocache/
+.gopath/
