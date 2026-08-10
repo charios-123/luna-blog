@@ -77,13 +77,14 @@ type Article struct {
 
 // Category 分类模型
 type Category struct {
-	ID          uint           `gorm:"primarykey" json:"id"`
-	Name        string         `gorm:"size:50;uniqueIndex;not null" json:"name"`
-	Description string         `gorm:"size:200" json:"description"`
-	Sort        int            `gorm:"default:0" json:"sort"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	ID            uint           `gorm:"primarykey" json:"id"`
+	Name          string         `gorm:"size:50;uniqueIndex;not null" json:"name"`
+	Description   string         `gorm:"size:200" json:"description"`
+	Sort          int            `gorm:"default:0" json:"sort"`
+	ArticleCount  int64          `gorm:"-" json:"article_count"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // Tag 标签模型

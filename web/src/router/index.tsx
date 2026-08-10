@@ -10,7 +10,6 @@ const Home = lazy(() => import('@/views/Home'))
 const Articles = lazy(() => import('@/views/Articles'))
 const ArticleDetail = lazy(() => import('@/views/ArticleDetail'))
 const Archive = lazy(() => import('@/views/Archive'))
-const Notes = lazy(() => import('@/views/Notes'))
 const Guestbook = lazy(() => import('@/views/Guestbook'))
 const About = lazy(() => import('@/views/About'))
 const Stats = lazy(() => import('@/views/Stats'))
@@ -21,7 +20,6 @@ const AdminLayout = lazy(() => import('@/layouts/AdminLayout'))
 const AdminArticles = lazy(() => import('@/views/admin/AdminArticles'))
 const ArticleEditor = lazy(() => import('@/views/admin/ArticleEditor'))
 const AdminCategories = lazy(() => import('@/views/admin/AdminCategories'))
-const AdminTags = lazy(() => import('@/views/admin/AdminTags'))
 const AdminComments = lazy(() => import('@/views/admin/AdminComments'))
 
 interface RouteMeta {
@@ -82,7 +80,6 @@ export const AppRoutes: RouteDef[] = [
   { path: 'articles',   element: <WithSeo meta={routeSeo.Articles}><Articles /></WithSeo> },
   { path: 'articles/:id', element: <ArticleDetail /> }, // 组件内部设置 SEO
   { path: 'archive',    element: <WithSeo meta={routeSeo.Archive}><Archive /></WithSeo> },
-  { path: 'notes/:tag?',element: <WithSeo meta={routeSeo.Notes}><Notes /></WithSeo> },
   { path: 'guestbook',  element: <WithSeo meta={routeSeo.Guestbook}><Guestbook /></WithSeo> },
   { path: 'about',      element: <WithSeo meta={routeSeo.About}><About /></WithSeo> },
   { path: 'stats',      element: <WithSeo meta={routeSeo.Stats}><Stats /></WithSeo> },
@@ -101,7 +98,6 @@ export const AppRoutes: RouteDef[] = [
       { path: 'articles/new',         element: <ArticleEditor /> },
       { path: 'articles/:id/edit',    element: <ArticleEditor /> },
       { path: 'categories',           element: <AdminCategories /> },
-      { path: 'tags',                 element: <AdminTags /> },
       { path: 'comments',             element: <AdminComments /> },
     ],
   },

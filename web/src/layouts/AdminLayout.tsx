@@ -1,11 +1,10 @@
 import { Link } from 'react-router-dom'
-import { FileText, LayoutDashboard, Tags, FolderTree, MessageSquare } from 'lucide-react'
+import { FileText, LayoutDashboard, FolderTree, MessageSquare } from 'lucide-react'
 import { Outlet, NavLink } from 'react-router-dom'
 
 const menu = [
   { to: '/admin/articles',   label: '文章管理', icon: FileText },
   { to: '/admin/categories', label: '分类管理', icon: FolderTree },
-  { to: '/admin/tags',       label: '标签管理', icon: Tags },
   { to: '/admin/comments',   label: '评论管理', icon: MessageSquare },
 ]
 

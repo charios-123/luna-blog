@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Sparkles, TrendingUp, Clock, BookOpen, MessageCircle, Hash, FolderTree, Pin } from 'lucide-react'
+import { Sparkles, TrendingUp, Clock, BookOpen, MessageCircle, FolderTree, Pin, Eye } from 'lucide-react'
 import ArticleCard from '@/components/ArticleCard'
 import Spinner from '@/components/ui/Spinner'
 import { getArticles } from '@/api/article'
 import { getStats } from '@/api/stats'
-import { getCategories, getTags } from '@/api/tag'
+import { getCategories } from '@/api/tag'
 import { fromNow } from '@/lib/utils'
 
 export default function Home() {
@@ -24,17 +24,13 @@ export default function Home() {
     queryKey: ['home', 'categories'],
     queryFn: () => getCategories().catch(() => ([])),
   })
-  const tagsQ = useQuery({
-    queryKey: ['home', 'tags'],
-    queryFn: () => getTags().catch(() => ([])),
-  })
 
   const latest = (latestQ.data?.list as any[]) || []
   const pinned = latest.filter((a) => a.is_pinned)
   const nonPinned = latest.filter((a) => !a.is_pinned)
   const stats = statsQ.data as any
-  const categories = (catsQ.data as any[]) || []
-  const tags = (tagsQ.data as any[]) || []
+  // 只显示 12 个技术栈分类,过滤掉"未分类"
+  const categories = ((catsQ.data as any[]) || []).filter((c: any) => c.name !== '未分类')
 
   return (
     <div className="animate-[fade-up_0.4s_ease-out]">
@@ -82,7 +78,7 @@ export default function Home() {
           {/* Stats tiles */}
           <div className="lg:col-span-2 grid grid-cols-2 gap-3 animate-[fade-up_0.7s_cubic-bezier(0.22,1,0.36,1)]">
             <StatTile icon={<BookOpen size={18} />} label="文章" value={stats?.article_count ?? 0} />
-            <StatTile icon={<Hash size={18} />} label="标签" value={stats?.tag_count ?? 0} />
+            <StatTile icon={<Eye size={18} />} label="总阅读" value={stats?.total_view_count ?? 0} />
             <StatTile icon={<FolderTree size={18} />} label="分类" value={stats?.category_count ?? 0} />
             <StatTile icon={<MessageCircle size={18} />} label="评论" value={stats?.comment_count ?? 0} />
           </div>
@@ -118,48 +114,37 @@ export default function Home() {
         )}
       </div>
 
-      {/* 分类 + 标签 + 最近更新 横向排列 */}
+      {/* 分类 + 最近更新 横向排列 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
-        <div className="card p-6" style={{ borderRadius: 'var(--radius-lg)' }}>
+        {/* 文章分类:占 2 列,容纳 12 个技术栈分类 */}
+        <div className="card p-6 md:col-span-2" style={{ borderRadius: 'var(--radius-lg)' }}>
           <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-heading)' }}>
             <FolderTree size={16} style={{ color: 'var(--accent-primary)' }} />
             文章分类
           </h3>
           {catsQ.isFetching && !catsQ.data ? <Spinner size="sm" /> : (
-            <div className="flex flex-wrap gap-2">
-              {categories.length === 0 && <span className="text-sm" style={{ color: 'var(--text-subtle)' }}>暂无分类</span>}
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {categories.length === 0 && <span className="col-span-full text-sm" style={{ color: 'var(--text-subtle)' }}>暂无分类</span>}
               {categories.map((c: any) => (
-                <Link key={c.id} to={`/articles?category_id=${c.id}`} className="chip">
-                  {c.name}
-                  {typeof c.article_count === 'number' && <span className="ml-1 opacity-60">({c.article_count})</span>}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="card p-6" style={{ borderRadius: 'var(--radius-lg)' }}>
-          <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-heading)' }}>
-            <Hash size={16} style={{ color: 'var(--accent-primary)' }} />
-            热门标签
-          </h3>
-          {tagsQ.isFetching && !tagsQ.data ? <Spinner size="sm" /> : (
-            <div className="flex flex-wrap gap-2">
-              {tags.length === 0 && <span className="text-sm" style={{ color: 'var(--text-subtle)' }}>暂无标签</span>}
-              {tags.map((t: any) => (
                 <Link
-                  key={t.id}
-                  to={`/articles?tag_id=${t.id}`}
-                  className="chip"
-                  style={t.color ? ({ background: `color-mix(in srgb, ${t.color} 16%, transparent)`, color: t.color }) : {}}
+                  key={c.id}
+                  to={`/articles?category_id=${c.id}`}
+                  className="cat-card flex flex-col items-center justify-center py-3.5 px-3 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                  style={{
+                    background: 'color-mix(in srgb, var(--bg-surface) 85%, transparent)',
+                    borderColor: 'var(--border-muted)',
+                  }}
                 >
-                  #{t.name}
+                  <span className="cat-name text-sm font-medium transition-colors" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-sans)' }}>
+                    {c.name}
+                  </span>
                 </Link>
               ))}
             </div>
           )}
         </div>
 
+        {/* 最近更新:占 1 列 */}
         <div className="card p-6" style={{ borderRadius: 'var(--radius-lg)' }}>
           <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-heading)' }}>
             <TrendingUp size={16} style={{ color: 'var(--accent-primary)' }} />

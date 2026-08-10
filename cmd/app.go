@@ -151,7 +151,6 @@ func initDefaultCategories() {
 		Sort        int
 	}
 	wanted := []expected{
-		{Name: "未分类", Description: "默认分类", Sort: 0},
 		{Name: "Linux", Description: "Linux 运维相关文章", Sort: 1},
 		{Name: "Kubernetes", Description: "K8s 容器编排相关", Sort: 2},
 		{Name: "Docker", Description: "Docker 容器技术", Sort: 3},

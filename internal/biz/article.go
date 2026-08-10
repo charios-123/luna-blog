@@ -40,7 +40,7 @@ type ArticleUseCase interface {
 	// ReorderPinned 更新置顶文章排序
 	ReorderPinned(articleIDs []uint) error
 	// Search 搜索文章
-	Search(keyword string, page, limit int, sort string) (*dto.PageResponse, error)
+	Search(keyword string, page, limit int, sort string, categoryID, tagID uint) (*dto.PageResponse, error)
 	// Archive 获取归档文章（按月份分组）
 	Archive(page, limit int) (*dto.PageResponse, error)
 	// GetDefaultCategoryID 获取默认分类ID
@@ -243,13 +243,23 @@ func (uc *articleUseCase) GetByID(id uint) (*dto.ArticleResponse, error) {
 func (uc *articleUseCase) List(req *dto.ArticleListRequest) (*dto.PageResponse, error) {
 	// 解析查询参数
 	var categoryID, tagID, chapterID uint
-	if req.Category != "" {
+	// 优先使用 category_id(数字),其次用 category(名称) 查找
+	if req.CategoryID != "" {
+		if id, err := strconv.ParseUint(req.CategoryID, 10, 32); err == nil {
+			categoryID = uint(id)
+		}
+	} else if req.Category != "" {
 		category, err := uc.data.CategoryRepo.FindByName(req.Category)
 		if err == nil {
 			categoryID = category.ID
 		}
 	}
-	if req.Tag != "" {
+	// 优先使用 tag_id(数字),其次用 tag(名称) 查找
+	if req.TagID != "" {
+		if id, err := strconv.ParseUint(req.TagID, 10, 32); err == nil {
+			tagID = uint(id)
+		}
+	} else if req.Tag != "" {
 		tag, err := uc.data.TagRepo.FindByName(req.Tag)
 		if err == nil {
 			tagID = tag.ID
@@ -526,20 +536,27 @@ func markdownToHTML(md string) string {
 }
 
 // Search 搜索文章
-func (uc *articleUseCase) Search(keyword string, page, limit int, sort string) (*dto.PageResponse, error) {
+func (uc *articleUseCase) Search(keyword string, page, limit int, sort string, categoryID, tagID uint) (*dto.PageResponse, error) {
 	keyword = strings.TrimSpace(keyword)
 	if keyword == "" {
-		return uc.List(&dto.ArticleListRequest{
+		req := &dto.ArticleListRequest{
 			PageRequest: dto.PageRequest{
 				Page:  page,
 				Limit: limit,
 			},
 			Status: "1",
 			Sort:   sort,
-		})
+		}
+		if categoryID > 0 {
+			req.CategoryID = strconv.FormatUint(uint64(categoryID), 10)
+		}
+		if tagID > 0 {
+			req.TagID = strconv.FormatUint(uint64(tagID), 10)
+		}
+		return uc.List(req)
 	}
 
-	articles, total, err := uc.data.ArticleRepo.List(page, limit, 0, 0, 0, "1", keyword, sort)
+	articles, total, err := uc.data.ArticleRepo.List(page, limit, categoryID, tagID, 0, "1", keyword, sort)
 	if err != nil {
 		return nil, errors.New("搜索文章失败")
 	}

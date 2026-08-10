@@ -10,7 +10,6 @@ const navItems = [
   { to: '/',           label: '首页' },
   { to: '/articles',   label: '文章' },
   { to: '/archive',    label: '归档' },
-  { to: '/notes',      label: '笔记' },
   { to: '/guestbook',  label: '留言板' },
   { to: '/about',      label: '关于' },
   { to: '/stats',      label: '统计' },

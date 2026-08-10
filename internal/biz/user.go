@@ -258,11 +258,38 @@ func (uc *categoryUseCase) Delete(id uint) error {
 	return nil
 }
 
-// List 查询分类列表
+// List 查询分类列表(含文章数量)
 func (uc *categoryUseCase) List() ([]po.Category, error) {
 	categories, err := uc.data.CategoryRepo.List()
 	if err != nil {
 		return nil, errors.New("查询分类列表失败")
+	}
+
+	// 批量查询每个分类的文章数量
+	if len(categories) > 0 {
+		catIDs := make([]uint, 0, len(categories))
+		for _, c := range categories {
+			catIDs = append(catIDs, c.ID)
+		}
+
+		type countRow struct {
+			CategoryID uint
+			Total      int64
+		}
+		var rows []countRow
+		if err := uc.data.GetDB().Model(&po.Article{}).
+			Select("category_id, COUNT(*) as total").
+			Where("category_id IN ? AND status = ?", catIDs, 1).
+			Group("category_id").
+			Scan(&rows).Error; err == nil {
+			countMap := make(map[uint]int64, len(rows))
+			for _, r := range rows {
+				countMap[r.CategoryID] = r.Total
+			}
+			for _, c := range categories {
+				c.ArticleCount = countMap[c.ID]
+			}
+		}
 	}
 
 	result := make([]po.Category, 0, len(categories))

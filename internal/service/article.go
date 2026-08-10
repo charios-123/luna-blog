@@ -185,7 +185,9 @@ func (s *ArticleService) List(c *gin.Context) {
 
 	// 解析过滤参数
 	req.Category = c.Query("category")
+	req.CategoryID = c.Query("category_id")
 	req.Tag = c.Query("tag")
+	req.TagID = c.Query("tag_id")
 	req.ChapterID = c.Query("chapter_id")
 	req.Status = c.Query("status")
 	req.Keyword = c.Query("keyword")
@@ -311,7 +313,20 @@ func (s *ArticleService) Search(c *gin.Context) {
 	}
 	sort := c.DefaultQuery("sort", "latest") // 默认按最新排序
 
-	resp, err := s.articleUseCase.Search(keyword, page, limit, sort)
+	// 解析分类ID和标签ID(可选)
+	var categoryID, tagID uint
+	if cid := c.Query("category_id"); cid != "" {
+		if id, err := strconv.ParseUint(cid, 10, 32); err == nil {
+			categoryID = uint(id)
+		}
+	}
+	if tid := c.Query("tag_id"); tid != "" {
+		if id, err := strconv.ParseUint(tid, 10, 32); err == nil {
+			tagID = uint(id)
+		}
+	}
+
+	resp, err := s.articleUseCase.Search(keyword, page, limit, sort, categoryID, tagID)
 	if err != nil {
 		response.ServerError(c, err.Error())
 		return
@@ -333,7 +348,7 @@ func (s *ArticleService) Search(c *gin.Context) {
 // @Router /blog/articles/archive [get]
 func (s *ArticleService) Archive(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "500"))
 
 	resp, err := s.articleUseCase.Archive(page, limit)
 	if err != nil {

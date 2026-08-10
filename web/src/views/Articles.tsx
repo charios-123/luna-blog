@@ -1,11 +1,11 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams, Link } from 'react-router-dom'
-import { Search, Filter, SlidersHorizontal, Hash, FolderTree, X } from 'lucide-react'
+import { Search, Filter, SlidersHorizontal, FolderTree, X } from 'lucide-react'
 import ArticleCard from '@/components/ArticleCard'
 import Spinner from '@/components/ui/Spinner'
 import { getArticles, searchArticles } from '@/api/article'
-import { getCategories, getTags } from '@/api/tag'
+import { getCategories } from '@/api/tag'
 
 export default function Articles() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -15,7 +15,6 @@ export default function Articles() {
   const limit = parseInt(searchParams.get('limit') || '10', 10)
   const keyword = searchParams.get('keyword') || ''
   const category_id = searchParams.get('category_id') || ''
-  const tag_id = searchParams.get('tag_id') || ''
 
   const [searchInput, setSearchInput] = useState(keyword)
 
@@ -32,27 +31,22 @@ export default function Articles() {
   }, [searchInput]) // eslint-disable-line
 
   const listQ = useQuery({
-    queryKey: ['articles', { page, limit, keyword, category_id, tag_id }],
+    queryKey: ['articles', { page, limit, keyword, category_id }],
     queryFn: () =>
       keyword
-        ? searchArticles(keyword, { page, limit, category_id: category_id || undefined, tag_id: tag_id || undefined }).catch(() => ({ list: [], total: 0 }))
-        : getArticles({ page, limit, category_id: category_id || undefined, tag_id: tag_id || undefined }).catch(() => ({ list: [], total: 0 })),
+        ? searchArticles(keyword, { page, limit, category_id: category_id || undefined }).catch(() => ({ list: [], total: 0 }))
+        : getArticles({ page, limit, category_id: category_id || undefined }).catch(() => ({ list: [], total: 0 })),
   })
 
   const catsQ = useQuery({
     queryKey: ['articles', 'categories'],
     queryFn: () => getCategories().catch(() => []),
   })
-  const tagsQ = useQuery({
-    queryKey: ['articles', 'tags'],
-    queryFn: () => getTags().catch(() => []),
-  })
 
   const list = (listQ.data?.list as any[]) || []
   const total = (listQ.data?.total as number) || 0
   const totalPages = Math.max(1, Math.ceil(total / limit))
   const categories = (catsQ.data as any[]) || []
-  const tags = (tagsQ.data as any[]) || []
 
   const setParam = (key: string, val: string) => {
     const np = new URLSearchParams(searchParams.toString())
@@ -118,24 +112,10 @@ export default function Articles() {
             title="分类"
             paramKey="category_id"
             current={category_id}
-            items={[
-              { id: '', name: '全部' },
-              ...categories.map((c: any) => ({ id: String(c.id), name: c.name })),
-            ]}
+            items={categories.map((c: any) => ({ id: String(c.id), name: c.name }))}
             onSelect={(v) => setParam('category_id', v)}
           />
-          <FilterBlock
-            icon={<Hash size={15} />}
-            title="标签"
-            paramKey="tag_id"
-            current={tag_id}
-            items={[
-              { id: '', name: '全部' },
-              ...tags.map((t: any) => ({ id: String(t.id), name: '#' + t.name })),
-            ]}
-            onSelect={(v) => setParam('tag_id', v)}
-          />
-          {(keyword || category_id || tag_id) && (
+          {(keyword || category_id) && (
             <div className="md:ml-auto flex items-center justify-end md:pt-1">
               <button type="button" className="btn btn-outline !py-1.5" onClick={clearAll}>
                 <X size={14} /> 清除筛选

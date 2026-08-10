@@ -48,6 +48,7 @@ export default function Archive() {
       : Array.isArray(raw?.groups)
         ? (raw.groups as any[]).flatMap((g: any) => g.list || [])
         : []
+  const total: number = raw?.total ?? arr.length
 
   const groups = groupByMonth(arr)
 
@@ -59,7 +60,7 @@ export default function Archive() {
           文章归档
         </h1>
         <p className="text-sm" style={{ color: 'var(--text-subtle)' }}>
-          共 <b style={{ color: 'var(--accent-primary)' }}>{arr.length}</b> 篇文章，按时间轴呈现
+          共 <b style={{ color: 'var(--accent-primary)' }}>{total}</b> 篇文章，按时间轴呈现
         </p>
       </header>
 

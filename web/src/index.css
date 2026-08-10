@@ -474,6 +474,15 @@
     background-color: #1c3328;
   }
 
+  /* 首页分类卡片 */
+  .cat-card:hover {
+    background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+    border-color: color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+  }
+  .cat-card:hover .cat-name {
+    color: var(--accent-primary) !important;
+  }
+
   .btn {
     display: inline-flex;
     align-items: center;
