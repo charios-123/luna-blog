@@ -2,6 +2,7 @@ package biz
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/ydcloud-dy/leaf-api/internal/data"
 	"github.com/ydcloud-dy/leaf-api/internal/model/dto"
 	"github.com/ydcloud-dy/leaf-api/internal/model/po"
+	"github.com/ydcloud-dy/leaf-api/pkg/logger"
 	mdutils "github.com/ydcloud-dy/leaf-api/pkg/markdown"
 )
 
@@ -57,6 +59,11 @@ type ArticleUseCase interface {
 	ListPublished(limit int) ([]dto.ArticleListItem, error)
 	// Export 导出文章为 ZIP 文件
 	Export(articleIDs []uint) ([]byte, error)
+	// CrawlAndSave 抓取指定关键词的 CSDN 文章并入库(去重)
+	// keyword: 搜索关键词(如 golang, kubernetes)
+	// categoryID: 入库后归属分类 ID
+	// 返回新增入库的文章数量
+	CrawlAndSave(keyword string, categoryID uint) (int, error)
 }
 
 // articleUseCase 文章业务用例实现
@@ -837,4 +844,135 @@ func (uc *articleUseCase) Export(articleIDs []uint) ([]byte, error) {
 	// 调用导出工具创建ZIP
 	exporter := mdutils.NewArticleExporter()
 	return exporter.ExportToZip(articles)
+}
+
+// CrawlAndSave 抓取 CSDN 文章并入库(去重)
+// 1. 调用 CSDNCrawler 拉取关键词搜索结果
+// 2. 用 SourceURL 唯一索引判断是否已存在,已存在则跳过
+// 3. 新文章以 Source="csdn-{keyword}" 标识,状态默认为已发布(1)直接展示
+func (uc *articleUseCase) CrawlAndSave(keyword string, categoryID uint) (int, error) {
+	keyword = strings.TrimSpace(keyword)
+	if keyword == "" {
+		return 0, errors.New("keyword 不能为空")
+	}
+	if categoryID == 0 {
+		return 0, errors.New("categoryID 不能为空")
+	}
+
+	// 校验分类存在
+	if _, err := uc.data.CategoryRepo.FindByID(categoryID); err != nil {
+		return 0, errors.New("分类不存在: " + err.Error())
+	}
+
+	// 解析作者 ID:外键约束要求 author_id 必须引用 users.id
+	// 爬取的文章归属第一个管理员(若不存在则用第一个用户)
+	authorID, err := uc.resolveCrawlAuthorID()
+	if err != nil {
+		return 0, errors.New("无法解析作者 ID: " + err.Error())
+	}
+
+	crawler := NewCSDNCrawler()
+	articles, err := crawler.FetchArticles(keyword)
+	if err != nil {
+		return 0, errors.New("CSDN 抓取失败: " + err.Error())
+	}
+
+	sourceTag := "csdn-" + keyword
+	saved := 0
+	for _, item := range articles {
+		// 用 SourceURL 去重(已在 DB 上加唯一索引,但提前查询可避免触发约束错误并减少日志噪音)
+		var existing int64
+		if err := uc.data.GetDB().Model(&po.Article{}).
+			Where("source_url = ?", item.URL).
+			Count(&existing).Error; err != nil {
+			logger.Warn("查询 source_url 去重失败: ", err)
+			continue
+		}
+		if existing > 0 {
+			continue
+		}
+
+		// 构造摘要:优先 Description,其次截取 Body
+		summary := item.Description
+		if summary == "" {
+			summary = truncateRunes(item.Body, 200)
+		}
+
+		// 正文以 Markdown 形式存储:仅包含摘要与正文片段
+		contentMarkdown := buildCrawledArticleMarkdown(item)
+
+		article := &po.Article{
+			Title:           item.Title,
+			ContentMarkdown: contentMarkdown,
+			ContentHTML:     markdownToHTML(contentMarkdown),
+			Summary:         summary,
+			AuthorID:        authorID,
+			CategoryID:      categoryID,
+			Status:          1, // 已发布:爬取后直接展示
+			Source:          sourceTag,
+			SourceURL:       item.URL,
+			OriginalAuthor:  item.Author,
+			CreatedAt:       item.PublishedAt,
+		}
+
+		if err := uc.data.ArticleRepo.Create(article); err != nil {
+			// 唯一约束冲突视为已存在,跳过
+			if isDuplicateKeyErr(err) {
+				continue
+			}
+			logger.Warn(fmt.Sprintf("CSDN 文章入库失败 title=%q: %v", item.Title, err))
+			continue
+		}
+		saved++
+	}
+
+	logger.Info(fmt.Sprintf("CSDN 入库完成: keyword=%q, source=%s, 新增=%d, 抓取=%d", keyword, sourceTag, saved, len(articles)))
+	return saved, nil
+}
+
+// buildCrawledArticleMarkdown 构造爬取文章的 Markdown 内容
+// 仅保留摘要和正文,不标注来源信息
+func buildCrawledArticleMarkdown(item CSDNArticle) string {
+	var sb strings.Builder
+	if item.Description != "" {
+		sb.WriteString(item.Description)
+		sb.WriteString("\n\n")
+	}
+	if item.Body != "" {
+		sb.WriteString(item.Body)
+		sb.WriteString("\n")
+	}
+	return sb.String()
+}
+
+// isDuplicateKeyErr 判断是否为唯一约束冲突错误
+func isDuplicateKeyErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "Duplicate entry") || strings.Contains(msg, "unique") || strings.Contains(msg, "UNIQUE")
+}
+
+// resolveCrawlAuthorID 解析爬取文章归属的作者 ID
+// 优先选取 is_blogger=1 的博主(Luna),其次选 admin/super_admin,最后回退到 id 最小的用户
+func (uc *articleUseCase) resolveCrawlAuthorID() (uint, error) {
+	// 1) 优先查询博主(is_blogger=1)
+	var blogger po.User
+	if err := uc.data.GetDB().Where("is_blogger = ?", 1).
+		Order("id ASC").First(&blogger).Error; err == nil {
+		return blogger.ID, nil
+	}
+	// 2) 回退:查询 admin/super_admin 角色
+	var admin po.User
+	if err := uc.data.GetDB().Where("role IN ?", []string{"admin", "super_admin"}).
+		Order("id ASC").First(&admin).Error; err == nil {
+		return admin.ID, nil
+	}
+	// 3) 最后回退:id 最小的用户
+	var user po.User
+	if err := uc.data.GetDB().Order("id ASC").First(&user).Error; err != nil {
+		return 0, errors.New("系统中没有任何用户,无法入库爬取文章")
+	}
+	return user.ID, nil
 }

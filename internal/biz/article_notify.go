@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	defaultSiteName = "运维工程师的技术笔记"
+	defaultSiteName = "后端开发工程师的技术笔记"
 	defaultSiteURL  = "https://dycloud.fun"
 )
 

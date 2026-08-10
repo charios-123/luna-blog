@@ -62,6 +62,9 @@ type Article struct {
 	LikeCount       int            `gorm:"default:0" json:"like_count"`
 	FavoriteCount   int            `gorm:"default:0" json:"favorite_count"`
 	CommentCount    int            `gorm:"default:0" json:"comment_count"`
+	Source          string         `gorm:"size:50;default:'original';index" json:"source"`            // 来源:original/rss-go/rss-java/juegin/devto/baeldung 等
+	SourceURL       string         `gorm:"size:500;index:uniq_source_url,unique" json:"source_url"`   // 原文 URL(去重,转载时跳转用)
+	OriginalAuthor  string         `gorm:"size:100" json:"original_author"`                           // 原作者名(转载时)
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`

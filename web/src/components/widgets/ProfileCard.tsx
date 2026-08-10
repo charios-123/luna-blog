@@ -18,8 +18,8 @@ export default function ProfileCard() {
   })
 
   const info = blogger || {
-    nickname: '叶同学',
-    bio: '一个热爱技术的运维工程师，记录成长路上的每一步探索。',
+    nickname: 'Luna',
+       bio: '一个热爱技术的后端开发工程师，记录成长路上的每一步探索。',
     location: '杭州',
     email: 'admin@example.com',
     github: 'https://github.com',
@@ -104,7 +104,7 @@ export default function ProfileCard() {
 
       {/* Tags */}
       <div className="flex flex-wrap justify-center gap-1.5 mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-muted)' }}>
-        {['运维', 'K8s', 'Go', '自动化'].map((tag) => (
+        {['后端', 'K8s', 'Go', '自动化'].map((tag) => (
           <span
             key={tag}
             className="px-2 py-0.5 rounded-full text-xs"

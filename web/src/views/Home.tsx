@@ -54,14 +54,14 @@ export default function Home() {
               color: 'var(--accent-primary)',
             }}>
               <Sparkles size={14} />
-              运维工程师的技术笔记
+              后端开发工程师的技术笔记
             </span>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight" style={{ color: 'var(--text-heading)' }}>
               记录每一次探索，<br />
               <span style={{ color: 'var(--accent-primary)' }}>沉淀技术路上的思考</span>
             </h1>
             <p className="text-base md:text-lg max-w-xl" style={{ color: 'var(--text-muted)' }}>
-              这里是运维/开发相关的技术笔记，涉及 Linux、K8s、自动化、后端开发等话题。
+              这里是后端开发相关的技术笔记，涉及 Linux、K8s、TS、Go 等话题。
               欢迎交流，也欢迎指出错误。
             </p>
             <div className="flex flex-wrap gap-3 pt-2">

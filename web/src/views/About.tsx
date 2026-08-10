@@ -44,7 +44,7 @@ export default function About() {
                 {info.nickname || info.username || 'Leaf'}
               </h2>
               <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
-                {info.title || '运维工程师 / 开发爱好者'}
+                {info.title || '后端开发工程师 / 开发爱好者'}
               </p>
             </div>
 
@@ -88,7 +88,7 @@ export default function About() {
             ) : (
               <div style={{ color: 'var(--text-muted)' }}>
                 <p className="mb-3">
-                  👋 Hi，我是 <b style={{ color: 'var(--accent-primary)' }}>Leaf</b>，一名运维工程师。
+                  👋 Hi，我是 <b style={{ color: 'var(--accent-primary)' }}>Leaf</b>，一名后端开发工程师。
                 </p>
                 <p className="mb-3">
                   日常工作围绕 Linux、Kubernetes、监控告警、自动化脚本展开。

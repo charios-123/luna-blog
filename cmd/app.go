@@ -10,11 +10,14 @@ import (
 	"time"
 
 	"github.com/ydcloud-dy/leaf-api/config"
+	"github.com/ydcloud-dy/leaf-api/internal/biz"
+	"github.com/ydcloud-dy/leaf-api/internal/data"
 	"github.com/ydcloud-dy/leaf-api/internal/model/po"
 	"github.com/ydcloud-dy/leaf-api/pkg/logger"
 	"github.com/ydcloud-dy/leaf-api/pkg/oss"
 	"github.com/ydcloud-dy/leaf-api/pkg/redis"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // Run 运行应用
@@ -62,6 +65,9 @@ func Run(configPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize app: %w", err)
 	}
+
+	// 启动 CSDN 一次性抓取(仅当 BLOG_CRAWL_ON_START=1 时触发)
+	startCSDNCrawler(config.DB)
 
 	// 创建 HTTP 服务器
 	addr := fmt.Sprintf(":%d", config.AppConfig.Server.Port)
@@ -198,4 +204,68 @@ func initDefaultCategories() {
 	}
 
 	logger.Info("Categories synced")
+}
+
+// csdnKeywordMap CSDN 搜索关键词 → 站点分类名映射
+// CSDN 搜索习惯与站点分类保持对应(例如 Go 用 golang, Kubernetes 用 kubernetes)
+var csdnKeywordMap = []struct {
+	Keyword      string
+	CategoryName string
+}{
+	{"linux", "Linux"},
+	{"kubernetes", "Kubernetes"},
+	{"docker", "Docker"},
+	{"golang", "Go"},
+	{"java", "Java"},
+	{"python", "Python"},
+	{"shell", "Shell"},
+	{"mysql", "MySQL"},
+	{"redis", "Redis"},
+	{"git", "Git"},
+	{"react", "React"},
+	{"typescript", "TypeScript"},
+}
+
+// startCSDNCrawler 一次性 CSDN 抓取入口
+// 仅当环境变量 BLOG_CRAWL_ON_START=1 时,在服务启动后 30 秒触发一次完整抓取
+// 抓取完成后不再循环,适合个人 demo 项目一次性填充数据
+func startCSDNCrawler(db *gorm.DB) {
+	if os.Getenv("BLOG_CRAWL_ON_START") != "1" {
+		return
+	}
+
+	dataLayer, err := data.NewData(db)
+	if err != nil {
+		logger.Error("CSDN crawl: 初始化 data 层失败: ", err)
+		return
+	}
+	bizLayer := biz.NewBiz(dataLayer)
+
+	logger.Info("BLOG_CRAWL_ON_START=1,启动后 30 秒将触发一次性抓取")
+	go func() {
+		time.Sleep(30 * time.Second)
+		runCSDNCrawlBatch(bizLayer, dataLayer)
+		logger.Info("[CSDN] 一次性抓取任务结束,后续不再自动执行")
+	}()
+}
+
+// runCSDNCrawlBatch 遍历所有关键词执行一次 CSDN 抓取
+func runCSDNCrawlBatch(bizLayer *biz.Biz, dataLayer *data.Data) {
+	logger.Info("[CSDN] 开始批量抓取...")
+	totalSaved := 0
+	for _, m := range csdnKeywordMap {
+		category, err := dataLayer.CategoryRepo.FindByName(m.CategoryName)
+		if err != nil {
+			logger.Warn(fmt.Sprintf("[CSDN] 跳过 %q: 找不到分类 %q", m.Keyword, m.CategoryName))
+			continue
+		}
+		saved, err := bizLayer.ArticleUseCase.CrawlAndSave(m.Keyword, category.ID)
+		if err != nil {
+			logger.Warn(fmt.Sprintf("[CSDN] keyword=%q 抓取失败: %v", m.Keyword, err))
+			continue
+		}
+		totalSaved += saved
+		logger.Info(fmt.Sprintf("[CSDN] keyword=%q 新增 %d 篇", m.Keyword, saved))
+	}
+	logger.Info(fmt.Sprintf("[CSDN] 批量抓取完成,共新增 %d 篇", totalSaved))
 }
