@@ -189,13 +189,13 @@ export default function Login() {
             ) : (
               <form className="space-y-3.5" onSubmit={onRegister}>
                 <Field icon={<UserCircle2 size={17} />} label="用户名">
-                  <input type="text" value={rUsername} onChange={(e) => setRUsername(e.target.value)} placeholder="leaf" className="input-base" />
+                  <input type="text" value={rUsername} onChange={(e) => setRUsername(e.target.value)} placeholder="user" className="input-base" />
                 </Field>
                 <Field icon={<UserCircle2 size={17} />} label="昵称（可选）">
-                  <input type="text" value={rNickname} onChange={(e) => setRNickname(e.target.value)} placeholder="叶同学" className="input-base" />
+                  <input type="text" value={rNickname} onChange={(e) => setRNickname(e.target.value)} placeholder="luna" className="input-base" />
                 </Field>
                 <Field icon={<Mail size={17} />} label="邮箱">
-                  <input type="email" value={rEmail} onChange={(e) => setREmail(e.target.value)} placeholder="leaf@example.com" className="input-base" />
+                  <input type="email" value={rEmail} onChange={(e) => setREmail(e.target.value)} placeholder="user@example.com" className="input-base" />
                 </Field>
                 <Field icon={<Lock size={17} />} label="密码">
                   <div className="relative">

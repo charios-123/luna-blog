@@ -97,6 +97,8 @@ func registerRoutes(
 		blogOptionalAuth.GET("/articles/:id", blogService.GetArticleDetail)
 		// 文章评论（登录用户可查看点赞状态）
 		blogOptionalAuth.GET("/articles/:id/comments", blogService.GetArticleComments)
+		// 发布评论（游客 user_id=0,登录用户取真实 ID）
+		blogOptionalAuth.POST("/comments", blogService.CreateComment)
 		// 留言板（登录用户可查看点赞状态）
 		blogOptionalAuth.GET("/guestbook", blogService.GetGuestbookMessages)
 	}
@@ -119,7 +121,6 @@ func registerRoutes(
 		blogAuthed.GET("/user/stats", blogService.GetUserStats)
 
 		// 评论
-		blogAuthed.POST("/comments", blogService.CreateComment)
 		blogAuthed.POST("/comments/:id/like", blogService.LikeComment)
 		blogAuthed.DELETE("/comments/:id/like", blogService.UnlikeComment)
 		blogAuthed.DELETE("/comments/:id", blogService.DeleteComment)

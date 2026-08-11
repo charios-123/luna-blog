@@ -115,7 +115,12 @@ export function addComment(data: {
   parent_id?: number | string
   reply_to_user_id?: number | string
 }) {
-  return request.post(`/blog/articles/${data.article_id}/comments`, data).then((r) => r.data)
+  return request.post(`/blog/comments`, {
+    article_id: Number(data.article_id),
+    content: data.content,
+    parent_id: data.parent_id !== undefined ? Number(data.parent_id) : undefined,
+    reply_to_user_id: data.reply_to_user_id !== undefined ? Number(data.reply_to_user_id) : undefined,
+  }).then((r) => r.data)
 }
 
 /** 删除评论（作者或管理员） */

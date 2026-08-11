@@ -172,6 +172,8 @@ func InitDatabase() error {
 	var err error
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
+		// 禁用 AutoMigrate 自动创建外键约束(评论允许游客 user_id=0,由应用层保证数据完整性)
+		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
