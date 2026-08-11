@@ -19,11 +19,13 @@ export default function ProfileCard() {
 
   const info = blogger || {
     nickname: 'Luna',
-       bio: '一个热爱技术的后端开发工程师，记录成长路上的每一步探索。',
+       bio: '后端开发工程师，专注云原生与基础设施，偶尔写点笔记。',
     location: '杭州',
     email: 'admin@example.com',
-    github: 'https://github.com',
+    github: 'https://github.com/charios-123/luna-blog',
   }
+
+  const githubUrl = info.github || 'https://github.com/charios-123/luna-blog'
 
   return (
     <div className="card p-6 text-center" style={{ borderRadius: 'var(--radius-lg)' }}>
@@ -76,18 +78,16 @@ export default function ProfileCard() {
 
       {/* Social links */}
       <div className="flex items-center justify-center gap-2">
-        {info.github && (
-          <a
-            href={info.github}
-            target="_blank"
-            rel="noreferrer"
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-surface-alt)]"
-            style={{ color: 'var(--text-muted)' }}
-            title="GitHub"
-          >
-            <Github size={16} />
-          </a>
-        )}
+        <a
+          href={githubUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-surface-alt)]"
+          style={{ color: 'var(--text-muted)' }}
+          title="GitHub"
+        >
+          <Github size={16} />
+        </a>
         <a
           href="https://blog.csdn.net/2301_80982154?type=blog"
           target="_blank"
@@ -100,22 +100,6 @@ export default function ProfileCard() {
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.6 14.4c-.3.3-.8.3-1.1 0l-3.5-3.5c-.6.3-1.3.5-2 .5-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4c0 .7-.2 1.4-.5 2l3.5 3.5c.3.3.3.8 0 1.1z" />
           </svg>
         </a>
-      </div>
-
-      {/* Tags */}
-      <div className="flex flex-wrap justify-center gap-1.5 mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-muted)' }}>
-        {['后端', 'K8s', 'Go'].map((tag) => (
-          <span
-            key={tag}
-            className="px-2 py-0.5 rounded-full text-xs"
-            style={{
-              background: 'color-mix(in srgb, var(--accent-primary) 10%, transparent)',
-              color: 'var(--accent-primary)',
-            }}
-          >
-            {tag}
-          </span>
-        ))}
       </div>
     </div>
   )

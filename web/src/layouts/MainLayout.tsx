@@ -146,15 +146,10 @@ function Footer() {
         background: 'var(--bg-surface)',
       }}
     >
-      <div className="container-page py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm" style={{ color: 'var(--text-subtle)' }}>
+      <div className="container-page py-10 flex items-center justify-center text-sm" style={{ color: 'var(--text-subtle)' }}>
         <div className="flex items-center gap-2">
           <Moon size={16} fill="currentColor" style={{ color: 'var(--accent-primary)' }} />
           <span>© {year} Luna Blog · 用心记录</span>
-        </div>
-        <div className="flex items-center gap-5">
-          <a href="/sitemap.xml" target="_blank" rel="noreferrer">站点地图</a>
-          <a href="/rss.xml" target="_blank" rel="noreferrer">RSS</a>
-          <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
         </div>
       </div>
     </footer>

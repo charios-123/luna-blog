@@ -36,17 +36,18 @@ func NewStatsService(d *data.Data) *StatsService {
 // @Router /blog/stats [get]
 func (s *StatsService) GetStats(c *gin.Context) {
 	var stats struct {
-		ArticleCount       int64   `json:"article_count"`        // 文章总数
-		ChapterCount       int64   `json:"chapter_count"`        // 章节/笔记总数
-		CategoryCount      int64   `json:"category_count"`       // 文章分类数
-		TagCount           int64   `json:"tag_count"`            // 标签数
-		UserCount          int64   `json:"user_count"`           // 用户总数
-		CommentCount       int64   `json:"comment_count"`        // 评论总数
-		TotalViews         int64   `json:"total_views"`          // 总浏览量
-		TodayViews         int64   `json:"today_views"`          // 今日浏览量
-		OnlineCount        int64   `json:"online_count"`         // 当前在线人数
-		AvgVisitDuration   float64 `json:"avg_visit_duration"`   // 平均访问时长（秒）
-		SiteRuntime        int64   `json:"site_runtime"`         // 网站运行天数
+		ArticleCount     int64   `json:"article_count"`      // 文章总数
+		ChapterCount     int64   `json:"chapter_count"`      // 章节/笔记总数
+		CategoryCount    int64   `json:"category_count"`     // 文章分类数
+		TagCount         int64   `json:"tag_count"`          // 标签数
+		UserCount        int64   `json:"user_count"`         // 用户总数
+		CommentCount     int64   `json:"comment_count"`      // 评论总数
+		TotalViews       int64   `json:"total_views"`        // 总浏览量
+		TotalLikes       int64   `json:"total_likes"`        // 总点赞数
+		TodayViews       int64   `json:"today_views"`        // 今日浏览量
+		OnlineCount      int64   `json:"online_count"`       // 当前在线人数
+		AvgVisitDuration float64 `json:"avg_visit_duration"` // 平均访问时长（秒）
+		SiteRuntime      int64   `json:"site_runtime"`       // 网站运行天数
 	}
 
 	// 统计文章数
@@ -69,6 +70,9 @@ func (s *StatsService) GetStats(c *gin.Context) {
 
 	// 统计总浏览量（所有文章的浏览量之和）
 	s.data.GetDB().Model(&po.Article{}).Select("COALESCE(SUM(view_count), 0)").Row().Scan(&stats.TotalViews)
+
+	// 统计总点赞数（所有文章的点赞量之和）
+	s.data.GetDB().Model(&po.Article{}).Select("COALESCE(SUM(like_count), 0)").Row().Scan(&stats.TotalLikes)
 
 	// 统计24小时访问量（PV）- 从 page_visits 表统计
 	pv24h, _ := s.visitService.Get24HourPageViews()

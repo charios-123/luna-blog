@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { getUserInfo, updateUserProfile, changePassword, uploadFile } from '@/api/user'
@@ -8,7 +8,7 @@ import Spinner from '@/components/ui/Spinner'
 import EmptyAvatar from '@/components/ui/EmptyAvatar'
 import {
   CalendarDays, UserCircle2, Mail, Shield, Edit3, LogOut, Lock,
-  X, Upload, Eye, EyeOff, Check, Github, MessageCircle, Globe, Phone,
+  X, Upload, Eye, EyeOff, Check,
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
@@ -18,9 +18,17 @@ export default function Profile() {
   const q = useQuery({
     queryKey: ['profile-detail', user?.id],
     enabled: !!user,
+    staleTime: 0,
+    refetchOnMount: 'always',
     queryFn: () => getUserInfo().catch(() => null) as Promise<any>,
   })
   const detail = q.data || user || {}
+
+  useEffect(() => {
+    if (q.data && user) {
+      userStore.getState().updateUser(q.data)
+    }
+  }, [q.data])
 
   const [showEdit, setShowEdit] = useState(false)
   const [showPwd, setShowPwd] = useState(false)
@@ -92,9 +100,6 @@ export default function Profile() {
                 <Row icon={<CalendarDays size={16} />} label="注册时间" value={detail.created_at ? formatDate(detail.created_at) : '-'} />
                 <Row icon={<CalendarDays size={16} />} label="上次登录" value={detail.last_login_at || detail.last_login_time ? formatDate(detail.last_login_at || detail.last_login_time) : '-'} />
                 <Row icon={<UserCircle2 size={16} />} label="简介" value={detail.bio || detail.introduction || '这个人很懒，什么都没留下。'} />
-                {detail.skills && (
-                  <Row icon={<UserCircle2 size={16} />} label="技能标签" value={formatSkills(detail.skills)} />
-                )}
 
                 {detail.role === 'admin' && (
                   <div className="md:col-span-2 pt-4 mt-2 border-t" style={{ borderColor: 'var(--border-muted)' }}>
@@ -114,7 +119,6 @@ export default function Profile() {
       {showEdit && (
         <EditProfileModal
           initial={detail}
-          isAdmin={detail.role === 'admin'}
           onClose={() => setShowEdit(false)}
           onSaved={(updated) => {
             userStore.getState().updateUser(updated)
@@ -133,16 +137,6 @@ export default function Profile() {
   )
 }
 
-function formatSkills(s: any) {
-  try {
-    const arr = typeof s === 'string' ? JSON.parse(s) : s
-    if (!Array.isArray(arr)) return s
-    return arr.join('、')
-  } catch {
-    return s
-  }
-}
-
 function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div>
@@ -158,10 +152,9 @@ function Row({ icon, label, value }: { icon: React.ReactNode; label: string; val
 /* ------------------- 编辑资料弹窗 ------------------- */
 
 function EditProfileModal({
-  initial, isAdmin, onClose, onSaved,
+  initial, onClose, onSaved,
 }: {
   initial: any
-  isAdmin: boolean
   onClose: () => void
   onSaved: (d: any) => void
 }) {
@@ -169,44 +162,10 @@ function EditProfileModal({
   const [avatar, setAvatar] = useState(initial.avatar || '')
   const [email, setEmail] = useState(initial.email || '')
   const [bio, setBio] = useState(initial.bio || initial.introduction || '')
-  // 技能标签：数组形式
-  const [skills, setSkills] = useState<string[]>(() => {
-    try {
-      const v = initial.skills
-      if (Array.isArray(v)) return v
-      if (typeof v === 'string') { const p = JSON.parse(v); return Array.isArray(p) ? p : [] }
-      return []
-    } catch { return [] }
-  })
-  const [skillInput, setSkillInput] = useState('')
-  // 联系方式：结构化对象
-  const [contacts, setContacts] = useState<Record<string, string>>(() => {
-    try {
-      const v = initial.contacts
-      if (typeof v === 'string') return JSON.parse(v) || {}
-      if (v && typeof v === 'object') return v
-      return {}
-    } catch { return {} }
-  })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [avatarUploaded, setAvatarUploaded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const contactFields = [
-    { key: 'github',   label: 'GitHub',   icon: Github,       placeholder: 'https://github.com/xxx' },
-    { key: 'email',    label: '邮箱',     icon: Mail,         placeholder: 'name@example.com' },
-    { key: 'wechat',   label: '微信',     icon: MessageCircle,placeholder: '微信号' },
-    { key: 'phone',    label: '电话',     icon: Phone,        placeholder: '手机号' },
-    { key: 'website',  label: '个人网站', icon: Globe,        placeholder: 'https://xxx.com' },
-  ]
-
-  const addSkill = () => {
-    const s = skillInput.trim()
-    if (s && !skills.includes(s)) setSkills([...skills, s])
-    setSkillInput('')
-  }
-  const removeSkill = (s: string) => setSkills(skills.filter((x) => x !== s))
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -230,9 +189,6 @@ function EditProfileModal({
     setSaving(true)
     try {
       const payload: Record<string, any> = { nickname, avatar, email, bio }
-      if (skills.length) payload.skills = JSON.stringify(skills)
-      const filteredContacts = Object.fromEntries(Object.entries(contacts).filter(([, v]) => v.trim()))
-      if (Object.keys(filteredContacts).length) payload.contacts = JSON.stringify(filteredContacts)
       const updated = await updateUserProfile(payload)
       toast.success('资料已更新')
       onSaved(updated || payload)
@@ -293,28 +249,6 @@ function EditProfileModal({
             placeholder="一句话介绍自己..."
           />
         </Field>
-        {isAdmin && (
-        <Field label="联系方式">
-          <div className="space-y-2">
-            {contactFields.map((f) => {
-              const Icon = f.icon
-              return (
-                <div key={f.key} className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--surface-muted)', color: 'var(--text-subtle)' }}>
-                    <Icon size={15} />
-                  </div>
-                  <input
-                    className="input-base flex-1"
-                    value={contacts[f.key] || ''}
-                    onChange={(e) => setContacts({ ...contacts, [f.key]: e.target.value })}
-                    placeholder={f.placeholder}
-                  />
-                </div>
-              )
-            })}
-          </div>
-        </Field>
-        )}
       </div>
       <div className="mt-6 flex justify-end gap-2">
         <button onClick={onClose} className="btn btn-ghost" disabled={saving}>取消</button>

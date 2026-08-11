@@ -17,7 +17,7 @@ export default function Home() {
   const statsQ = useQuery({
     queryKey: ['home', 'stats'],
     queryFn: () => getStats().catch(() => ({
-      article_count: 0, category_count: 0, tag_count: 0, comment_count: 0, total_view_count: 0, user_count: 0,
+      article_count: 0, category_count: 0, tag_count: 0, comment_count: 0, total_views: 0, user_count: 0,
     })),
   })
   const catsQ = useQuery({
@@ -78,7 +78,7 @@ export default function Home() {
           {/* Stats tiles */}
           <div className="lg:col-span-2 grid grid-cols-2 gap-3 animate-[fade-up_0.7s_cubic-bezier(0.22,1,0.36,1)]">
             <StatTile icon={<BookOpen size={18} />} label="文章" value={stats?.article_count ?? 0} />
-            <StatTile icon={<Eye size={18} />} label="总阅读" value={stats?.total_view_count ?? 0} />
+            <StatTile icon={<Eye size={18} />} label="总阅读" value={stats?.total_views ?? 0} />
             <StatTile icon={<FolderTree size={18} />} label="分类" value={stats?.category_count ?? 0} />
             <StatTile icon={<MessageCircle size={18} />} label="评论" value={stats?.comment_count ?? 0} />
           </div>

@@ -31,7 +31,7 @@ export default function Stats() {
 
   const tiles = [
     { k: 'article_count', label: '文章总数', icon: <BookOpen size={20} />, accent: 'var(--accent-primary)' },
-    { k: 'total_view_count', label: '总阅读', icon: <Eye size={20} />, accent: 'var(--accent-warm)' },
+    { k: 'total_views', label: '总阅读', icon: <Eye size={20} />, accent: 'var(--accent-warm)' },
     { k: 'comment_count', label: '评论数', icon: <MessageCircle size={20} />, accent: 'var(--color-leaf-600)' },
     { k: 'category_count', label: '分类', icon: <FolderTree size={20} />, accent: 'var(--color-warm-600)' },
     { k: 'tag_count', label: '标签', icon: <Hash size={20} />, accent: 'var(--accent-primary)' },
@@ -168,7 +168,7 @@ export default function Stats() {
         <Award size={28} className="mx-auto mb-3" style={{ color: 'var(--accent-warm)' }} />
         <p className="text-base md:text-lg" style={{ color: 'var(--text-heading)' }}>
           小站已发布 <b style={{ color: 'var(--accent-primary)' }}>{s.article_count ?? 0}</b> 篇文章，
-          累计 <b style={{ color: 'var(--accent-primary)' }}>{(s.total_view_count ?? 0).toLocaleString?.() ?? s.total_view_count ?? 0}</b> 次阅读，
+          累计 <b style={{ color: 'var(--accent-primary)' }}>{(s.total_views ?? 0).toLocaleString?.() ?? s.total_views ?? 0}</b> 次阅读，
           <br className="hidden md:block" />
           收到 <b style={{ color: 'var(--accent-primary)' }}>{s.comment_count ?? 0}</b> 条留言。
           感谢每一位路过的朋友 ❤️

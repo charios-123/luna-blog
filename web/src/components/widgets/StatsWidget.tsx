@@ -9,10 +9,10 @@ export default function StatsWidget() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const totalArticles = stats?.total_articles ?? 0
+  const totalArticles = stats?.article_count ?? 0
   const totalViews = stats?.total_views ?? 0
   const totalLikes = stats?.total_likes ?? 0
-  const totalComments = stats?.total_comments ?? 0
+  const totalComments = stats?.comment_count ?? 0
 
   const items = [
     { icon: FileText, label: '文章', value: totalArticles, color: 'var(--accent-primary)' },
