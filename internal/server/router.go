@@ -20,6 +20,7 @@ func registerRoutes(
 	settingsService *service.SettingsService,
 	fileService *service.FileService,
 	blogService *service.BlogService,
+	aiService *service.AIService,
 	onlineService *service.OnlineService,
 	visitService *service.VisitService,
 	analyticsService *service.AnalyticsService,
@@ -76,6 +77,9 @@ func registerRoutes(
 
 		// 博主信息（关于页面使用）
 		blog.GET("/blogger", blogService.GetBloggerInfo) // 获取博主信息
+
+		// 文章 AI 问答
+		blog.POST("/articles/:id/ai/chat", aiService.ChatAboutArticle) // 基于文章内容 AI 问答
 
 		// 站点设置（公开访问，用于前端显示备案信息等）
 		blog.GET("/settings", settingsService.GetPublic) // 获取站点设置

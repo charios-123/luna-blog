@@ -1212,7 +1212,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.85em;
+    font-size: 0.95em;
     font-weight: 600;
     color: var(--text-heading);
     margin-bottom: 12px;
@@ -1245,25 +1245,25 @@
   .toc-item {
     display: block;
     padding: 7px 12px 7px 14px;
-    font-size: 0.82em;
+    font-size: 0.92em;
     color: var(--text-subtle);
     border-radius: var(--radius-md);
-    line-height: 1.45;
+    line-height: 1.5;
     cursor: pointer;
     position: relative;
     transition: all 0.2s ease;
     border-left: 2px solid transparent;
     text-decoration: none;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
   }
   .toc-item:hover {
     background: color-mix(in srgb, var(--color-leaf-500) 8%, transparent);
     color: var(--text-fg);
   }
-  .toc-item.is-h3 { padding-left: 24px; font-size: 0.78em; }
-  .toc-item.is-h4 { padding-left: 32px; font-size: 0.74em; }
+  .toc-item.is-h3 { padding-left: 24px; font-size: 0.88em; }
+  .toc-item.is-h4 { padding-left: 32px; font-size: 0.84em; }
+  .toc-item.is-h5 { padding-left: 40px; font-size: 0.82em; }
+  .toc-item.is-h6 { padding-left: 48px; font-size: 0.8em; }
   .toc-item.active {
     background: linear-gradient(90deg,
       color-mix(in srgb, var(--color-leaf-500) 14%, transparent) 0%,

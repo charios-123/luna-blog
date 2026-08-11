@@ -15,7 +15,7 @@ export default function Home() {
     queryFn: () => getArticles({ page: 1, limit: 6 }).catch(() => ({ list: [], total: 0 })),
   })
   const statsQ = useQuery({
-    queryKey: ['home', 'stats'],
+    queryKey: ['stats'],
     queryFn: () => getStats().catch(() => ({
       article_count: 0, category_count: 0, tag_count: 0, comment_count: 0, total_views: 0, user_count: 0,
     })),

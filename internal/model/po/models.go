@@ -62,9 +62,9 @@ type Article struct {
 	LikeCount       int            `gorm:"default:0" json:"like_count"`
 	FavoriteCount   int            `gorm:"default:0" json:"favorite_count"`
 	CommentCount    int            `gorm:"default:0" json:"comment_count"`
-	Source          string         `gorm:"size:50;default:'original';index" json:"source"`            // 来源:original/rss-go/rss-java/juegin/devto/baeldung 等
-	SourceURL       string         `gorm:"size:500;index:uniq_source_url,unique" json:"source_url"`   // 原文 URL(去重,转载时跳转用)
-	OriginalAuthor  string         `gorm:"size:100" json:"original_author"`                           // 原作者名(转载时)
+	Source          string         `gorm:"size:50;default:'original';index" json:"source"`         // 来源:original/rss-go/rss-java/juegin/devto/baeldung 等
+	SourceURL       *string        `gorm:"size:500;uniqueIndex:uniq_source_url" json:"source_url"` // 原文 URL(去重,转载时跳转用);指针类型,空值=NULL 不参与 UNIQUE 比较
+	OriginalAuthor  string         `gorm:"size:100" json:"original_author"`                        // 原作者名(转载时)
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
@@ -77,14 +77,14 @@ type Article struct {
 
 // Category 分类模型
 type Category struct {
-	ID            uint           `gorm:"primarykey" json:"id"`
-	Name          string         `gorm:"size:50;uniqueIndex;not null" json:"name"`
-	Description   string         `gorm:"size:200" json:"description"`
-	Sort          int            `gorm:"default:0" json:"sort"`
-	ArticleCount  int64          `gorm:"-" json:"article_count"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	ID           uint           `gorm:"primarykey" json:"id"`
+	Name         string         `gorm:"size:50;uniqueIndex;not null" json:"name"`
+	Description  string         `gorm:"size:200" json:"description"`
+	Sort         int            `gorm:"default:0" json:"sort"`
+	ArticleCount int64          `gorm:"-" json:"article_count"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // Tag 标签模型

@@ -6,7 +6,6 @@ export default function StatsWidget() {
   const { data: stats } = useQuery({
     queryKey: ['stats'],
     queryFn: getStats,
-    staleTime: 5 * 60 * 1000,
   })
 
   const totalArticles = stats?.article_count ?? 0

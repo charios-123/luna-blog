@@ -48,6 +48,12 @@ func (s *ArticleService) Create(c *gin.Context) {
 		return
 	}
 
+	// 分类必选,给出中文提示
+	if req.CategoryID == 0 {
+		response.BadRequest(c, "请选择分类")
+		return
+	}
+
 	// 获取作者 ID
 	adminID, _ := c.Get("admin_id")
 

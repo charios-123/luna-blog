@@ -48,16 +48,20 @@ func main() {
 
 	for i, article := range articles {
 		fmt.Printf("[%d/%d] 重新爬取文章 ID=%d, 标题=%s\n", i+1, len(articles), article.ID, article.Title)
-		fmt.Printf("  源URL: %s\n", article.SourceURL)
+		sourceURL := ""
+		if article.SourceURL != nil {
+			sourceURL = *article.SourceURL
+		}
+		fmt.Printf("  源URL: %s\n", sourceURL)
 
-		if article.SourceURL == "" {
+		if sourceURL == "" {
 			fmt.Println("  ✗ 跳过：没有源URL")
 			failCount++
 			continue
 		}
 
 		// 爬取文章内容
-		content, err := crawler.FetchArticlePage(article.SourceURL)
+		content, err := crawler.FetchArticlePage(sourceURL)
 		if err != nil {
 			fmt.Printf("  ✗ 爬取失败: %v\n", err)
 			failCount++

@@ -28,16 +28,20 @@ func main() {
 	}
 
 	fmt.Printf("文章 ID=%d, 标题=%s\n", article.ID, article.Title)
-	fmt.Printf("SourceURL=%s\n", article.SourceURL)
+	sourceURL := ""
+	if article.SourceURL != nil {
+		sourceURL = *article.SourceURL
+	}
+	fmt.Printf("SourceURL=%s\n", sourceURL)
 
-	if article.SourceURL == "" {
+	if sourceURL == "" {
 		fmt.Println("没有 source_url，无法重新爬取")
 		return
 	}
 
 	// 重新爬取
 	crawler := biz.NewCSDNCrawler()
-	md, err := crawler.FetchArticlePage(article.SourceURL)
+	md, err := crawler.FetchArticlePage(sourceURL)
 	if err != nil {
 		log.Fatalf("爬取失败: %v", err)
 	}

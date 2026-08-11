@@ -936,18 +936,18 @@ func (uc *articleUseCase) CrawlAndSave(keyword string, categoryID uint) (int, er
 		}
 
 		article := &po.Article{
-			Title:           item.Title,
-			ContentMarkdown: contentMarkdown,
-			ContentHTML:     markdownToHTML(contentMarkdown),
-			Summary:         summary,
-			AuthorID:        authorID,
-			CategoryID:      categoryID,
-			Status:          1,
-			Source:          sourceTag,
-			SourceURL:       item.URL,
-			OriginalAuthor:  item.Author,
-			CreatedAt:       item.PublishedAt,
-		}
+		Title:           item.Title,
+		ContentMarkdown: contentMarkdown,
+		ContentHTML:     markdownToHTML(contentMarkdown),
+		Summary:         summary,
+		AuthorID:        authorID,
+		CategoryID:      categoryID,
+		Status:          1,
+		Source:          sourceTag,
+		SourceURL:       &item.URL,
+		OriginalAuthor:  item.Author,
+		CreatedAt:       item.PublishedAt,
+	}
 
 		if err := uc.data.ArticleRepo.Create(article); err != nil {
 			if isDuplicateKeyErr(err) {

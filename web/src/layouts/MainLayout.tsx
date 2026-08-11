@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Moon } from 'lucide-react'
 import Header from '@/components/Header'
 import GlobalSidebar from '@/components/GlobalSidebar'
@@ -9,6 +9,11 @@ import { useVisitTracking } from '@/hooks/useVisitTracking'
 export default function MainLayout() {
   useHeartbeat(true)
   useVisitTracking()
+  const { pathname } = useLocation()
+  // 文章详情页：隐藏左右侧栏，让文章内容更宽
+  const isArticleDetail = /^\/articles\/\d+/.test(pathname)
+  // 后台管理页：隐藏左右侧栏,只保留管理区域(AdminLayout 自带导航)
+  const isAdmin = pathname.startsWith('/admin')
 
   return (
     <div className="min-h-screen flex flex-col relative">
@@ -115,20 +120,30 @@ export default function MainLayout() {
       </div>
 
       <main className="flex-1 w-full relative z-10">
-        <div className="w-full flex gap-6 px-[90px] py-8 max-w-[2000px] mx-auto">
-          {/* 左侧栏：博主名片 + 统计 */}
-          <aside className="hidden xl:flex flex-col w-[280px] shrink-0 sticky top-24 self-start space-y-5">
-            <GlobalSidebar side="left" />
-          </aside>
-          {/* 中间内容区：铺满剩余宽度 */}
-          <div className="flex-1 min-w-0">
-            <Outlet />
+        {isArticleDetail || isAdmin ? (
+          /* 文章详情页 / 后台管理页:无侧栏,内容居中 */
+          <div className="w-full flex gap-6 px-[90px] py-8 max-w-[2000px] mx-auto">
+            <div className="flex-1 min-w-0">
+              <Outlet />
+            </div>
           </div>
-          {/* 右侧栏：天气 + 日历 + 最新动态 */}
-          <aside className="hidden xl:flex flex-col w-72 shrink-0 sticky top-24 self-start space-y-5">
-            <GlobalSidebar side="right" />
-          </aside>
-        </div>
+        ) : (
+          /* 普通页面：左右侧栏 + 中间内容 */
+          <div className="w-full flex gap-6 px-[90px] py-8 max-w-[2000px] mx-auto">
+            {/* 左侧栏：博主名片 + 统计 */}
+            <aside className="hidden xl:flex flex-col w-[280px] shrink-0 sticky top-24 self-start space-y-5">
+              <GlobalSidebar side="left" />
+            </aside>
+            {/* 中间内容区：铺满剩余宽度 */}
+            <div className="flex-1 min-w-0">
+              <Outlet />
+            </div>
+            {/* 右侧栏：天气 + 日历 + 最新动态 */}
+            <aside className="hidden xl:flex flex-col w-72 shrink-0 sticky top-24 self-start space-y-5">
+              <GlobalSidebar side="right" />
+            </aside>
+          </div>
+        )}
       </main>
       <Footer />
       <Toaster />

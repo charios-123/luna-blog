@@ -49,7 +49,7 @@ export default function ArticleEditor() {
       const a = detailQ.data
       setTitle(a.title || '')
       setSummary(a.summary || '')
-      setContent(a.content_md || a.content || '')
+      setContent(a.content_markdown || '')
       setCover(a.cover || '')
       setCategoryId(a.category_id ? String(a.category_id) : (a.category?.id ? String(a.category.id) : ''))
       setTagIds((a.tags || []).map((t: any) => String(t.id)))
@@ -61,9 +61,9 @@ export default function ArticleEditor() {
   const saveMut = useMutation({
     mutationFn: () => {
       const payload = {
-        title, summary, content_md: content, cover: cover || undefined,
-        category_id: categoryId || undefined,
-        tag_ids: tagIds.length ? tagIds : undefined,
+        title, summary, content_markdown: content, cover: cover || undefined,
+        category_id: categoryId ? Number(categoryId) : undefined,
+        tag_ids: tagIds.length ? tagIds.map(Number) : undefined,
         status, is_pinned: isPinned,
       }
       return isEdit
@@ -81,6 +81,7 @@ export default function ArticleEditor() {
     if (publishStatus !== undefined) setStatus(publishStatus)
     if (!title.trim()) return setToast({ t: '请填写标题', type: 'error' })
     if (!content.trim()) return setToast({ t: '请填写正文', type: 'error' })
+    if (!categoryId) return setToast({ t: '请选择分类', type: 'error' })
     saveMut.mutate()
   }
 

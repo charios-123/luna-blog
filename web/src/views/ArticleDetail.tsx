@@ -13,6 +13,7 @@ import Spinner from '@/components/ui/Spinner'
 import EmptyAvatar from '@/components/ui/EmptyAvatar'
 import Toast from '@/components/ui/Toast'
 import ArticleCard from '@/components/ArticleCard'
+import AIChatWidget from '@/components/widgets/AIChatWidget'
 import {
   Eye, Heart, Bookmark, MessageCircle, Share2, Calendar, UserCircle2,
   ChevronLeft, ChevronRight, ThumbsUp, Reply, Send, Trash2, Pin,
@@ -132,7 +133,7 @@ export default function ArticleDetail() {
   const [replyTarget, setReplyTarget] = useState<{ id: any; name: string; pid?: any } | null>(null)
 
   // ============== 目录解析 + 滚动高亮 ==============
-  type TocItem = { id: string; text: string; level: 2 | 3 | 4 }
+  type TocItem = { id: string; text: string; level: 1 | 2 | 3 | 4 | 5 | 6 }
   const [tocItems, setTocItems] = useState<TocItem[]>([])
   const [activeToc, setActiveToc] = useState<string>('')
   const mdRef = useRef<HTMLDivElement>(null)
@@ -158,9 +159,9 @@ export default function ArticleDetail() {
     for (const line of lines) {
       if (/^```/.test(line)) { inCode = !inCode; continue }
       if (inCode) continue
-      const m = line.match(/^(#{2,4})\s+(.*\S)\s*$/)
+      const m = line.match(/^\s{0,3}(#{1,6})\s+(.*\S)\s*$/)
       if (!m) continue
-      const level = m[1].length as 2 | 3 | 4
+      const level = m[1].length as 1 | 2 | 3 | 4 | 5 | 6
       let text = m[2].replace(/^[0-9]+[.、]\s*/, '')
       // 去掉 Markdown 粗体/链接等嵌套符号
       text = text
@@ -196,6 +197,20 @@ export default function ArticleDetail() {
     handler()
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
+  }, [tocItems])
+
+  // 将 TOC 的 id 按顺序赋给渲染后的标题元素（避免 StrictMode 双渲染导致 id 不一致）
+  const assignHeadingIds = useCallback(() => {
+    const el = mdRef.current
+    if (!el || !tocItems.length) return
+    const headings = el.querySelectorAll<HTMLHeadingElement>('h1, h2, h3, h4, h5, h6')
+    let tocIdx = 0
+    headings.forEach((h) => {
+      if (tocIdx < tocItems.length) {
+        h.id = tocItems[tocIdx].id
+        tocIdx++
+      }
+    })
   }, [tocItems])
 
   // 代码块：注入复制按钮 + 语言标签
@@ -241,7 +256,7 @@ export default function ArticleDetail() {
   const bindHeadingAnchors = useCallback(() => {
     const el = mdRef.current
     if (!el) return
-    const headings = el.querySelectorAll<HTMLHeadingElement>('h1, h2, h3, h4')
+    const headings = el.querySelectorAll<HTMLHeadingElement>('h1, h2, h3, h4, h5, h6')
     headings.forEach((h) => {
       if (h.dataset.anchorBound) return
       h.dataset.anchorBound = '1'
@@ -265,11 +280,12 @@ export default function ArticleDetail() {
     if (!article) return
     // 等下一帧让 DOM 渲染完
     const t = setTimeout(() => {
+      assignHeadingIds()
       injectCodeBlockDecorations()
       bindHeadingAnchors()
     }, 80)
     return () => clearTimeout(t)
-  }, [article?.id, article?.content_markdown, injectCodeBlockDecorations, bindHeadingAnchors])
+  }, [article?.id, article?.content_markdown, assignHeadingIds, injectCodeBlockDecorations, bindHeadingAnchors])
 
   const submitMut = useMutation({
     mutationFn: () =>
@@ -322,7 +338,41 @@ export default function ArticleDetail() {
         </div>
       ) : (
         <div className="flex gap-6">
-          {/* 正文区 */}
+          {/* 左侧目录导航（xl+ 显示，内容较长时才有意义） */}
+          {tocItems.length >= 2 && (
+            <aside className="hidden xl:block w-[240px] shrink-0">
+              <div className="sticky top-24 card p-4" style={{ borderRadius: 'var(--radius-lg)' }}>
+                <div className="toc-widget">
+                  <div className="toc-widget-title">
+                    <FileText size={16} style={{ color: 'var(--accent-primary)' }} />
+                    目录导航
+                  </div>
+                  <div className="toc-list">
+                    {tocItems.map((it) => (
+                      <a
+                        key={it.id}
+                        href={`#${it.id}`}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          const el = document.getElementById(it.id)
+                          if (el) {
+                            window.scrollTo({ top: el.offsetTop - 85, behavior: 'smooth' })
+                            history.replaceState(null, '', `#${it.id}`)
+                          }
+                        }}
+                        className={`toc-item is-h${it.level}${activeToc === it.id ? ' active' : ''}`}
+                        title={it.text}
+                      >
+                        {it.text}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </aside>
+          )}
+
+          {/* 正文区:flex-1 随屏幕宽度自适应,不被 max-w 限制 */}
           <div className="flex-1 min-w-0">
             <article className="card p-6 md:p-9 lg:p-11 animate-[fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)]" style={{ borderRadius: 'var(--radius-xl)' }}>
             {/* Header */}
@@ -382,36 +432,15 @@ export default function ArticleDetail() {
                 const mdContent = transformCallouts(article.content_markdown || '')
                 const htmlContent = article.content_html || ''
                 if (mdContent) {
-                  // 构建索引：按顺序为标题分配 id（与 buildTocFromMarkdown 保持相同的 slug 逻辑）
-                  const idCounter = new Map<string, number>()
-                  const headingIdFor = (text: string, level: number) => {
-                    const plain = String(text || '')
-                      .replace(/\*\*(.+?)\*\*/g, '$1')
-                      .replace(/`([^`]+)`/g, '$1')
-                      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-                      .replace(/^[0-9]+[.、]\s*/, '')
-                    const base = slugify(plain) || `h-${level}`
-                    const n = (idCounter.get(base) || 0) + 1
-                    idCounter.set(base, n)
-                    return n > 1 ? `${base}-${n}` : base
-                  }
                   return (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       rehypePlugins={[[rehypeHighlight, { detect: true }]]}
                       components={{
-                        h1: ({ children, ...props }) => (
-                          <h1 id={headingIdFor(children, 1)} {...props}>{children}</h1>
-                        ),
-                        h2: ({ children, ...props }) => (
-                          <h2 id={headingIdFor(children, 2)} {...props}>{children}</h2>
-                        ),
-                        h3: ({ children, ...props }) => (
-                          <h3 id={headingIdFor(children, 3)} {...props}>{children}</h3>
-                        ),
-                        h4: ({ children, ...props }) => (
-                          <h4 id={headingIdFor(children, 4)} {...props}>{children}</h4>
-                        ),
+                        h1: ({ ...props }) => <h1 {...props} />,
+                        h2: ({ ...props }) => <h2 {...props} />,
+                        h3: ({ ...props }) => <h3 {...props} />,
+                        h4: ({ ...props }) => <h4 {...props} />,
                         p: ({ ...props }) => <p {...props} />,
                         ul: ({ ...props }) => <ul {...props} />,
                         ol: ({ ...props }) => <ol {...props} />,
@@ -593,39 +622,12 @@ export default function ArticleDetail() {
           </section>
           </div> {/* 正文区 div */}
 
-          {/* 右侧目录悬浮导航（仅 xl+ 显示，内容较长时才有意义） */}
-          {tocItems.length >= 2 && (
-            <aside className="hidden xl:block w-[220px] shrink-0">
-              <div className="sticky top-24 card p-4" style={{ borderRadius: 'var(--radius-lg)' }}>
-                <div className="toc-widget">
-                  <div className="toc-widget-title">
-                    <FileText size={16} style={{ color: 'var(--accent-primary)' }} />
-                    目录导航
-                  </div>
-                  <div className="toc-list">
-                    {tocItems.map((it) => (
-                      <a
-                        key={it.id}
-                        href={`#${it.id}`}
-                        onClick={(e) => {
-                          e.preventDefault()
-                          const el = document.getElementById(it.id)
-                          if (el) {
-                            window.scrollTo({ top: el.offsetTop - 85, behavior: 'smooth' })
-                            history.replaceState(null, '', `#${it.id}`)
-                          }
-                        }}
-                        className={`toc-item is-h${it.level}${activeToc === it.id ? ' active' : ''}`}
-                        title={it.text}
-                      >
-                        {it.text}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </aside>
-          )}
+          {/* 右侧栏:文章 AI 问答 */}
+          <aside className="hidden xl:block w-72 shrink-0">
+            <div className="sticky top-24">
+              <AIChatWidget articleId={article.id} />
+            </div>
+          </aside>
         </div>
       )}
 

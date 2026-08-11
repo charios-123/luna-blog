@@ -18,6 +18,7 @@ type Config struct {
 	JWT      JWTConfig      `mapstructure:"jwt"`
 	OSS      OSSConfig      `mapstructure:"oss"`
 	Redis    RedisConfig    `mapstructure:"redis"`
+	AI       AIConfig       `mapstructure:"ai"`
 	Log      LogConfig      `mapstructure:"log"`
 }
 
@@ -66,6 +67,16 @@ type RedisConfig struct {
 	PoolSize int    `mapstructure:"pool_size"`
 }
 
+// AIConfig AI 能力配置(通义千问 DashScope OpenAI 兼容接口)
+type AIConfig struct {
+	Provider        string `mapstructure:"provider"`
+	BaseURL         string `mapstructure:"base_url"`
+	APIKey          string `mapstructure:"api_key"`
+	Model           string `mapstructure:"model"`
+	Timeout         int    `mapstructure:"timeout"`
+	MaxContentChars int    `mapstructure:"max_content_chars"`
+}
+
 var AppConfig *Config
 var DB *gorm.DB
 
@@ -97,6 +108,9 @@ func LoadConfig(configPath string) error {
 	viper.BindEnv("redis.host", "REDIS_HOST")
 	viper.BindEnv("redis.port", "REDIS_PORT")
 	viper.BindEnv("redis.password", "REDIS_PASSWORD")
+	viper.BindEnv("ai.api_key", "AI_API_KEY")
+	viper.BindEnv("ai.base_url", "AI_BASE_URL")
+	viper.BindEnv("ai.model", "AI_MODEL")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
@@ -116,6 +130,23 @@ func LoadConfig(configPath string) error {
 	}
 	if AppConfig.Log.Output == "" {
 		AppConfig.Log.Output = "stdout"
+	}
+
+	// Set defaults for AI config
+	if AppConfig.AI.Provider == "" {
+		AppConfig.AI.Provider = "dashscope"
+	}
+	if AppConfig.AI.BaseURL == "" {
+		AppConfig.AI.BaseURL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+	}
+	if AppConfig.AI.Model == "" {
+		AppConfig.AI.Model = "qwen-plus"
+	}
+	if AppConfig.AI.Timeout <= 0 {
+		AppConfig.AI.Timeout = 60
+	}
+	if AppConfig.AI.MaxContentChars <= 0 {
+		AppConfig.AI.MaxContentChars = 8000
 	}
 
 	return nil

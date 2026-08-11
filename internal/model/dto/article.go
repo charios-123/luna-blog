@@ -9,8 +9,8 @@ type CreateArticleRequest struct {
 	ContentHTML     string     `json:"content_html"` // 可选，如果不传则自动从 Markdown 转换
 	Summary         string     `json:"summary" binding:"max=500"`
 	Cover           string     `json:"cover" binding:"max=500"`
-	CategoryID      uint       `json:"category_id" binding:"required"`
-	ChapterID       *uint      `json:"chapter_id"` // 章节ID，可为空
+	CategoryID      uint       `json:"category_id"` // 必选,由 service 层校验并给出中文提示
+	ChapterID       *uint      `json:"chapter_id"`  // 章节ID，可为空
 	TagIDs          []uint     `json:"tag_ids"`
 	Status          int        `json:"status" binding:"oneof=0 1 2"` // 0: draft, 1: published, 2: offline
 	CreatedAt       *time.Time `json:"created_at"`                   // 创建时间，可选，如果不传则使用当前时间
