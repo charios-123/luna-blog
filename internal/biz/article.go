@@ -881,8 +881,7 @@ func (uc *articleUseCase) CrawlAndSave(keyword string, categoryID uint) (int, er
 		return 0, errors.New("分类不存在: " + err.Error())
 	}
 
-	// 解析作者 ID:外键约束要求 author_id 必须引用 users.id
-	// 爬取的文章归属第一个管理员(若不存在则用第一个用户)
+	// 解析作者 ID
 	authorID, err := uc.resolveCrawlAuthorID()
 	if err != nil {
 		return 0, errors.New("无法解析作者 ID: " + err.Error())
@@ -897,7 +896,7 @@ func (uc *articleUseCase) CrawlAndSave(keyword string, categoryID uint) (int, er
 	sourceTag := "csdn-" + keyword
 	saved := 0
 	for _, item := range articles {
-		// 用 SourceURL 去重(已在 DB 上加唯一索引,但提前查询可避免触发约束错误并减少日志噪音)
+		// 去重
 		var existing int64
 		if err := uc.data.GetDB().Model(&po.Article{}).
 			Where("source_url = ?", item.URL).
@@ -909,14 +908,32 @@ func (uc *articleUseCase) CrawlAndSave(keyword string, categoryID uint) (int, er
 			continue
 		}
 
-		// 构造摘要:优先 Description,其次截取 Body
+		// 抓取全文
+		fullMD := ""
+		if md, err := crawler.FetchArticlePage(item.URL); err == nil {
+			fullMD = md
+		} else {
+			logger.Warn(fmt.Sprintf("全文抓取失败 url=%q: %v, 跳过该文章", item.URL, err))
+			continue
+		}
+
+		// 构造摘要:优先用全文前 200 字,其次 Description,最后 Body
 		summary := item.Description
+		if summary == "" && fullMD != "" {
+			summary = truncateRunes(stripMarkdown(fullMD), 200)
+		}
 		if summary == "" {
 			summary = truncateRunes(item.Body, 200)
 		}
 
-		// 正文以 Markdown 形式存储:仅包含摘要与正文片段
-		contentMarkdown := buildCrawledArticleMarkdown(item)
+		// 使用全文 Markdown
+		contentMarkdown := fullMD
+
+		// 检测内容是否乱码(字符缺失等问题)
+		if isCorruptedContent(contentMarkdown) {
+			logger.Warn(fmt.Sprintf("文章内容疑似乱码 url=%q, 跳过", item.URL))
+			continue
+		}
 
 		article := &po.Article{
 			Title:           item.Title,
@@ -925,7 +942,7 @@ func (uc *articleUseCase) CrawlAndSave(keyword string, categoryID uint) (int, er
 			Summary:         summary,
 			AuthorID:        authorID,
 			CategoryID:      categoryID,
-			Status:          1, // 已发布:爬取后直接展示
+			Status:          1,
 			Source:          sourceTag,
 			SourceURL:       item.URL,
 			OriginalAuthor:  item.Author,
@@ -933,7 +950,6 @@ func (uc *articleUseCase) CrawlAndSave(keyword string, categoryID uint) (int, er
 		}
 
 		if err := uc.data.ArticleRepo.Create(article); err != nil {
-			// 唯一约束冲突视为已存在,跳过
 			if isDuplicateKeyErr(err) {
 				continue
 			}
@@ -941,6 +957,9 @@ func (uc *articleUseCase) CrawlAndSave(keyword string, categoryID uint) (int, er
 			continue
 		}
 		saved++
+
+		// 礼貌等待,避免请求过快
+		time.Sleep(1500 * time.Millisecond)
 	}
 
 	logger.Info(fmt.Sprintf("CSDN 入库完成: keyword=%q, source=%s, 新增=%d, 抓取=%d", keyword, sourceTag, saved, len(articles)))
@@ -960,6 +979,75 @@ func buildCrawledArticleMarkdown(item CSDNArticle) string {
 		sb.WriteString("\n")
 	}
 	return sb.String()
+}
+
+// stripMarkdown 移除 Markdown 格式,提取纯文本
+func stripMarkdown(md string) string {
+	// 移除代码块
+	re := regexp.MustCompile("```[\\s\\S]*?```")
+	md = re.ReplaceAllString(md, "")
+	// 移除行内代码
+	re = regexp.MustCompile("`[^`]+`")
+	md = re.ReplaceAllString(md, "")
+	// 移除图片
+	re = regexp.MustCompile(`!\[[^\]]*\]\([^)]*\)`)
+	md = re.ReplaceAllString(md, "")
+	// 移除链接(保留文字)
+	re = regexp.MustCompile(`\[([^\]]*)\]\([^)]*\)`)
+	md = re.ReplaceAllString(md, "$1")
+	// 移除 Markdown 标记
+	md = regexp.MustCompile(`[#*_>~\-]`).ReplaceAllString(md, " ")
+	// 压缩空白
+	md = regexp.MustCompile(`\s+`).ReplaceAllString(md, " ")
+	return strings.TrimSpace(md)
+}
+
+// isCorruptedContent 检测文章内容是否疑似乱码
+// 通过分析文本中的字符模式,检测是否存在系统性字符缺失
+func isCorruptedContent(content string) bool {
+	if content == "" {
+		return true
+	}
+
+	// 提取纯文本进行分析
+	text := stripMarkdown(content)
+
+	// 如果内容过短,可能是抓取失败
+	if len([]rune(text)) < 50 {
+		return true
+	}
+
+	// 检测是否存在大量短单词(可能是字符缺失导致)
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return true
+	}
+
+	// 统计短单词比例(长度<=3的英文单词)
+	shortWordCount := 0
+	for _, w := range words {
+		if len(w) <= 3 && isASCIIWord(w) {
+			shortWordCount++
+		}
+	}
+
+	// 如果短单词比例过高,可能是字符缺失
+	shortRatio := float64(shortWordCount) / float64(len(words))
+	if shortRatio > 0.3 {
+		return true
+	}
+
+	return false
+}
+
+// isASCIIWord 判断是否为纯英文单词
+func isASCIIWord(s string) bool {
+	for _, r := range s {
+		if r < 'a' || r > 'z' {
+			return false
+		}
+	}
+	return len(s) > 0
 }
 
 // isDuplicateKeyErr 判断是否为唯一约束冲突错误

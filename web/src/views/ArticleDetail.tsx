@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 import {
   getArticleDetail, likeArticle, unlikeArticle, getArticleComments, addComment,
   deleteArticle as deleteArticleApi,
@@ -205,13 +208,48 @@ export default function ArticleDetail() {
             )}
 
             {/* 正文 */}
-            <div
-              className="markdown-body"
-              dangerouslySetInnerHTML={{
-                __html: article.content_html || article.content ||
-                  (article.content_md ? article.content_md.replace(/\n/g, '<br/>') : '<p style="color:var(--text-muted)">（正文为空）</p>'),
-              }}
-            />
+            <div className="markdown-body">
+              {(() => {
+                const mdContent = article.content_markdown || ''
+                const htmlContent = article.content_html || ''
+                if (mdContent) {
+                  return (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight]}
+                      components={{
+                        h1: ({ ...props }) => <h1 {...props} />,
+                        h2: ({ ...props }) => <h2 {...props} />,
+                        h3: ({ ...props }) => <h3 {...props} />,
+                        h4: ({ ...props }) => <h4 {...props} />,
+                        p: ({ ...props }) => <p {...props} />,
+                        ul: ({ ...props }) => <ul {...props} />,
+                        ol: ({ ...props }) => <ol {...props} />,
+                        li: ({ ...props }) => <li {...props} />,
+                        blockquote: ({ ...props }) => <blockquote {...props} />,
+                        code: ({ ...props }) => <code {...props} />,
+                        pre: ({ ...props }) => <pre {...props} />,
+                        a: ({ ...props }) => <a {...props} />,
+                        img: ({ ...props }) => <img {...props} alt={props.alt || ''} />,
+                        table: ({ ...props }) => <table {...props} />,
+                        thead: ({ ...props }) => <thead {...props} />,
+                        tbody: ({ ...props }) => <tbody {...props} />,
+                        tr: ({ ...props }) => <tr {...props} />,
+                        th: ({ ...props }) => <th {...props} />,
+                        td: ({ ...props }) => <td {...props} />,
+                        hr: ({ ...props }) => <hr {...props} />,
+                      }}
+                    >
+                      {mdContent}
+                    </ReactMarkdown>
+                  )
+                } else if (htmlContent) {
+                  return <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+                } else {
+                  return <p style={{ color: 'var(--text-muted)' }}>（正文为空）</p>
+                }
+              })()}
+            </div>
 
             {/* 操作按钮 */}
             <footer

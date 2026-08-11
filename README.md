@@ -2,10 +2,6 @@
 
 一个基于 Go + Gin 开发的博客系统后端服务，项目架构参考了 [Kratos](https://go-kratos.dev/) 的分层设计理念，同时结合实际业务需求做了适配和简化。
 
-前端部署地址：
-- 网站端：https://github.com/ydcloud-dy/leaf-ui-frontend
-- 管理端：https://github.com/ydcloud-dy/leaf-ui-backend
-- 移动端：https://github.com/ydcloud-dy/leaf-ui-phone
 ## 📋 目录
 
 - [技术栈](#-技术栈)
