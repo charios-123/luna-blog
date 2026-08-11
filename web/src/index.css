@@ -1430,3 +1430,61 @@ main > * {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- AI 聊天气泡内 Markdown 渲染(收紧间距,适配小尺寸气泡) ---------- */
+.ai-chat-markdown > *:first-child { margin-top: 0; }
+.ai-chat-markdown > *:last-child { margin-bottom: 0; }
+.ai-chat-markdown p {
+  margin: 0.45em 0;
+  line-height: 1.7;
+  text-indent: 0;
+  text-align: left;
+}
+/* 覆盖文章页的首字下沉效果,AI 气泡内不放大首字 */
+.ai-chat-markdown > p:first-of-type::first-letter {
+  float: none;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+  font-weight: inherit;
+  color: inherit;
+}
+.ai-chat-markdown h1,
+.ai-chat-markdown h2,
+.ai-chat-markdown h3,
+.ai-chat-markdown h4 {
+  margin: 0.6em 0 0.3em;
+  font-size: 1.05em;
+  line-height: 1.4;
+}
+.ai-chat-markdown h1::before,
+.ai-chat-markdown h2::before,
+.ai-chat-markdown h3::before,
+.ai-chat-markdown h4::before {
+  display: none; /* 气泡内不需要编号标记 */
+}
+.ai-chat-markdown ul,
+.ai-chat-markdown ol {
+  margin: 0.4em 0;
+  padding-left: 1.4em;
+}
+.ai-chat-markdown li + li { margin-top: 0.25em; }
+.ai-chat-markdown blockquote {
+  margin: 0.5em 0;
+  padding: 0.2em 0.8em;
+}
+.ai-chat-markdown :not(pre) > code {
+  padding: 0.12em 0.35em;
+  font-size: 0.9em;
+}
+.ai-chat-markdown pre {
+  margin: 0.5em 0;
+  font-size: 0.85em;
+  overflow-x: auto;
+}
+.ai-chat-markdown table {
+  font-size: 0.85em;
+}
+.ai-chat-markdown a {
+  word-break: break-all;
+}

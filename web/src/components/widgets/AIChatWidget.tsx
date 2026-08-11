@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bot, Send, Sparkles, Eraser, User as UserIcon } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 import { aiChatAboutArticle, type AIChatMessage } from '@/api/ai'
 import Spinner from '@/components/ui/Spinner'
 
@@ -87,8 +90,10 @@ export default function AIChatWidget({ articleId }: { articleId: number | string
               </span>
             )}
             <div
-              className={`max-w-[82%] px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap ${
-                m.role === 'user' ? 'rounded-2xl rounded-br-sm' : 'rounded-2xl rounded-bl-sm'
+              className={`max-w-[82%] px-3 py-2 text-[13px] leading-relaxed ${
+                m.role === 'user'
+                  ? 'whitespace-pre-wrap rounded-2xl rounded-br-sm'
+                  : 'rounded-2xl rounded-bl-sm'
               }`}
               style={
                 m.role === 'user'
@@ -96,7 +101,18 @@ export default function AIChatWidget({ articleId }: { articleId: number | string
                   : { background: 'var(--bg-surface-alt)', color: 'var(--text-fg)' }
               }
             >
-              {m.content}
+              {m.role === 'user' ? (
+                m.content
+              ) : (
+                <div className="ai-chat-markdown markdown-body">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[[rehypeHighlight, { detect: true }]]}
+                  >
+                    {m.content}
+                  </ReactMarkdown>
+                </div>
+              )}
             </div>
             {m.role === 'user' && (
               <span className="shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'var(--bg-surface-alt)', color: 'var(--text-muted)' }}>

@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { getAdminArticle, createArticle, updateArticle } from '@/api/article'
-import { getCategories, getTags } from '@/api/tag'
+import { getCategories } from '@/api/tag'
 import Spinner from '@/components/ui/Spinner'
 import Toast from '@/components/ui/Toast'
 import {
-  ArrowLeft, Save, Eye, EyeOff, FileText, Image as ImageIcon, Hash, FolderTree,
+  ArrowLeft, Save, Eye, EyeOff, FileText, Image as ImageIcon, FolderTree,
   Bold, Italic, List as ListIcon, Code as CodeIcon, Link2, Quote, Heading, Edit3,
 } from 'lucide-react'
 
@@ -20,7 +20,6 @@ export default function ArticleEditor() {
   const [content, setContent] = useState('')
   const [cover, setCover] = useState('')
   const [categoryId, setCategoryId] = useState<string>('')
-  const [tagIds, setTagIds] = useState<string[]>([])
   const [status, setStatus] = useState(1) // 1 发布 0 草稿
   const [isPinned, setIsPinned] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -30,13 +29,8 @@ export default function ArticleEditor() {
     queryKey: ['admin-cats-options'],
     queryFn: () => getCategories().catch(() => ({ list: [] })) as Promise<any>,
   })
-  const tagsQ = useQuery({
-    queryKey: ['admin-tags-options'],
-    queryFn: () => getTags().catch(() => ({ list: [] })) as Promise<any>,
-  })
 
   const cats: any[] = Array.isArray(catsQ.data) ? catsQ.data : (catsQ.data?.list || [])
-  const tags: any[] = Array.isArray(tagsQ.data) ? tagsQ.data : (tagsQ.data?.list || [])
 
   const detailQ = useQuery({
     queryKey: ['admin-article-edit', id],
@@ -52,7 +46,6 @@ export default function ArticleEditor() {
       setContent(a.content_markdown || '')
       setCover(a.cover || '')
       setCategoryId(a.category_id ? String(a.category_id) : (a.category?.id ? String(a.category.id) : ''))
-      setTagIds((a.tags || []).map((t: any) => String(t.id)))
       setStatus(a.status ?? 1)
       setIsPinned(!!a.is_pinned)
     }
@@ -63,7 +56,6 @@ export default function ArticleEditor() {
       const payload = {
         title, summary, content_markdown: content, cover: cover || undefined,
         category_id: categoryId ? Number(categoryId) : undefined,
-        tag_ids: tagIds.length ? tagIds.map(Number) : undefined,
         status, is_pinned: isPinned,
       }
       return isEdit
@@ -97,10 +89,6 @@ export default function ArticleEditor() {
       ta.focus()
       ta.setSelectionRange(start + before.length, start + before.length + sel.length)
     })
-  }
-
-  const toggleTag = (tid: string) => {
-    setTagIds((arr) => arr.includes(tid) ? arr.filter((x) => x !== tid) : [...arr, tid])
   }
 
   return (
@@ -260,33 +248,6 @@ export default function ArticleEditor() {
                 <option key={c.id} value={String(c.id)}>{c.name}</option>
               ))}
             </select>
-          </div>
-
-          {/* 标签 */}
-          <div className="card p-4 space-y-2" style={{ borderRadius: 'var(--radius-lg)' }}>
-            <h3 className="font-semibold text-sm inline-flex items-center gap-1.5" style={{ color: 'var(--text-heading)' }}>
-              <Hash size={14} /> 标签
-            </h3>
-            <div className="flex flex-wrap gap-1.5">
-              {tags.length === 0 ? (
-                <span className="text-xs" style={{ color: 'var(--text-subtle)' }}>暂无标签</span>
-              ) : tags.map((t) => {
-                const active = tagIds.includes(String(t.id))
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => toggleTag(String(t.id))}
-                    className="chip text-xs !py-1"
-                    style={{
-                      background: active ? 'var(--accent-primary)' : 'var(--bg-surface-alt)',
-                      color: active ? 'white' : 'var(--text-muted)',
-                    }}
-                  >
-                    {t.name}
-                  </button>
-                )
-              })}
-            </div>
           </div>
         </div>
       </div>

@@ -24,7 +24,7 @@ type AIUseCase interface {
 	ChatAboutArticle(articleID uint, messages []dto.AIChatMessage) (string, error)
 }
 
-// aiUseCase AI 业务实现(通义千问 DashScope OpenAI 兼容接口)
+// aiUseCase AI 业务实现(DeepSeek OpenAI 兼容接口)
 type aiUseCase struct {
 	data *data.Data
 	cfg  config.AIConfig
@@ -67,7 +67,7 @@ type dashScopeChatResponse struct {
 // ChatAboutArticle 基于文章内容回答用户问题
 func (uc *aiUseCase) ChatAboutArticle(articleID uint, messages []dto.AIChatMessage) (string, error) {
 	if strings.TrimSpace(uc.cfg.APIKey) == "" {
-		return "", errors.New("AI 功能未配置:请设置环境变量 AI_API_KEY(智谱/通义千问等 API Key)")
+		return "", errors.New("AI 功能未配置:请设置环境变量 AI_API_KEY(DeepSeek/OpenAI 兼容 API Key)")
 	}
 
 	// 读取文章
