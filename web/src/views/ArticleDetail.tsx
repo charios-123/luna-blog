@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -16,9 +16,37 @@ import ArticleCard from '@/components/ArticleCard'
 import {
   Eye, Heart, Bookmark, MessageCircle, Share2, Calendar, UserCircle2,
   ChevronLeft, ChevronRight, ThumbsUp, Reply, Send, Trash2, Pin,
-  FolderTree, Hash, Edit3, Clock4,
+  FolderTree, Hash, Edit3, Clock4, FileText,
 } from 'lucide-react'
 import { formatDate, timeAgo } from '@/lib/utils'
+
+// ========== callout 解析 (:::note / :::tip / :::warning) ==========
+// 在传给 react-markdown 之前，将 :::note ... ::: 转为带 class 的容器块
+function transformCallouts(md: string): string {
+  if (!md) return md
+  const lines = md.split(/\r?\n/)
+  const stack: { type: string; start: number }[] = []
+  const result: string[] = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const openMatch = line.match(/^:::\s*(note|tip|warning)\s*$/)
+    if (openMatch) {
+      stack.push({ type: openMatch[1], start: i })
+      result.push(`<div class="md-callout callout-${openMatch[1]}"><span class="callout-icon">${
+        openMatch[1] === 'note' ? 'i' : openMatch[1] === 'tip' ? '✓' : '!'
+      }</span>`)
+      continue
+    }
+    if (/^:::\s*$/.test(line) && stack.length) {
+      stack.pop()
+      result.push('</div>')
+      continue
+    }
+    result.push(line)
+  }
+  return result.join('\n')
+}
 
 export default function ArticleDetail() {
   const { id = '' } = useParams()
@@ -103,6 +131,146 @@ export default function ArticleDetail() {
   const [commentText, setCommentText] = useState('')
   const [replyTarget, setReplyTarget] = useState<{ id: any; name: string; pid?: any } | null>(null)
 
+  // ============== 目录解析 + 滚动高亮 ==============
+  type TocItem = { id: string; text: string; level: 2 | 3 | 4 }
+  const [tocItems, setTocItems] = useState<TocItem[]>([])
+  const [activeToc, setActiveToc] = useState<string>('')
+  const mdRef = useRef<HTMLDivElement>(null)
+
+  // 在 Markdown 渲染前生成稳定的标题 id（通过 slug 化标题文本）
+  const slugify = (text: string): string => {
+    if (!text) return ''
+    return text
+      .trim()
+      .toLowerCase()
+      .replace(/[\s，。、；：""''（）【】《》！？,.!?;:()<>\[\]\"'\/]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  }
+
+  // 从内容中抽出 TOC（同时用于组件 prop，保证 ids 前后一致）
+  const buildTocFromMarkdown = (md: string): TocItem[] => {
+    if (!md) return []
+    const items: TocItem[] = []
+    const seen = new Map<string, number>()
+    const lines = md.split(/\r?\n/)
+    let inCode = false
+    for (const line of lines) {
+      if (/^```/.test(line)) { inCode = !inCode; continue }
+      if (inCode) continue
+      const m = line.match(/^(#{2,4})\s+(.*\S)\s*$/)
+      if (!m) continue
+      const level = m[1].length as 2 | 3 | 4
+      let text = m[2].replace(/^[0-9]+[.、]\s*/, '')
+      // 去掉 Markdown 粗体/链接等嵌套符号
+      text = text
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+      let base = slugify(text) || `h-${level}`
+      const n = (seen.get(base) || 0) + 1
+      seen.set(base, n)
+      const id = n > 1 ? `${base}-${n}` : base
+      items.push({ id, text, level })
+    }
+    return items
+  }
+
+  const toc = useMemo(() => buildTocFromMarkdown(article?.content_markdown || ''), [article?.content_markdown])
+  useEffect(() => { setTocItems(toc) }, [toc])
+
+  // 滚动监听：根据当前滚动位置找到可见的标题
+  useEffect(() => {
+    if (!tocItems.length) return
+    const handler = () => {
+      const scrollTop = window.scrollY + 110
+      let currentId = tocItems[0]?.id
+      for (const it of tocItems) {
+        const el = document.getElementById(it.id)
+        if (!el) continue
+        if (el.offsetTop <= scrollTop) currentId = it.id
+        else break
+      }
+      setActiveToc(currentId)
+    }
+    handler()
+    window.addEventListener('scroll', handler, { passive: true })
+    return () => window.removeEventListener('scroll', handler)
+  }, [tocItems])
+
+  // 代码块：注入复制按钮 + 语言标签
+  const injectCodeBlockDecorations = useCallback(() => {
+    const pre = mdRef.current?.querySelectorAll<HTMLPreElement>('pre')
+    pre?.forEach((p) => {
+      if (p.querySelector('.code-copy-btn')) return
+      // 语言标签
+      const code = p.querySelector('code')
+      const langCls = code?.className || ''
+      let lang = ''
+      const m = langCls.match(/language-([\w+-]+)/)
+      if (m) lang = m[1]
+      if (lang) {
+        const tag = document.createElement('span')
+        tag.className = 'code-lang-tag'
+        tag.textContent = lang
+        p.appendChild(tag)
+      }
+      // 复制按钮
+      const btn = document.createElement('button')
+      btn.className = 'code-copy-btn'
+      btn.type = 'button'
+      btn.title = '复制代码'
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`
+      btn.addEventListener('click', async () => {
+        const txt = code?.innerText || ''
+        try {
+          await navigator.clipboard.writeText(txt)
+          btn.classList.add('copied')
+          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+          setTimeout(() => {
+            btn.classList.remove('copied')
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`
+          }, 1600)
+        } catch { /* ignore */ }
+      })
+      p.appendChild(btn)
+    })
+  }, [])
+
+  // 标题锚点点击跳转
+  const bindHeadingAnchors = useCallback(() => {
+    const el = mdRef.current
+    if (!el) return
+    const headings = el.querySelectorAll<HTMLHeadingElement>('h1, h2, h3, h4')
+    headings.forEach((h) => {
+      if (h.dataset.anchorBound) return
+      h.dataset.anchorBound = '1'
+      h.style.userSelect = 'none'
+      h.addEventListener('click', () => {
+        const id = h.id
+        if (!id) return
+        // 先复制锚点 URL
+        const url = `${window.location.pathname}${window.location.search}#${id}`
+        try { navigator.clipboard?.writeText(window.location.origin + url) } catch { /* ignore */ }
+        const el = document.getElementById(id)
+        if (el) {
+          window.scrollTo({ top: el.offsetTop - 80, behavior: 'smooth' })
+          history.replaceState(null, '', `#${id}`)
+        }
+      })
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!article) return
+    // 等下一帧让 DOM 渲染完
+    const t = setTimeout(() => {
+      injectCodeBlockDecorations()
+      bindHeadingAnchors()
+    }, 80)
+    return () => clearTimeout(t)
+  }, [article?.id, article?.content_markdown, injectCodeBlockDecorations, bindHeadingAnchors])
+
   const submitMut = useMutation({
     mutationFn: () =>
       addComment(
@@ -153,9 +321,10 @@ export default function ArticleDetail() {
           <Link to="/articles" className="btn btn-primary mt-3 inline-flex">返回文章列表</Link>
         </div>
       ) : (
-        <>
-          {/* 正文卡 */}
-          <article className="card p-6 md:p-9 lg:p-11 animate-[fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)]" style={{ borderRadius: 'var(--radius-xl)' }}>
+        <div className="flex gap-6">
+          {/* 正文区 */}
+          <div className="flex-1 min-w-0">
+            <article className="card p-6 md:p-9 lg:p-11 animate-[fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)]" style={{ borderRadius: 'var(--radius-xl)' }}>
             {/* Header */}
             <header className="mb-7 md:mb-9">
               {article.is_pinned && (
@@ -208,20 +377,41 @@ export default function ArticleDetail() {
             )}
 
             {/* 正文 */}
-            <div className="markdown-body">
+            <div className="markdown-body" ref={mdRef}>
               {(() => {
-                const mdContent = article.content_markdown || ''
+                const mdContent = transformCallouts(article.content_markdown || '')
                 const htmlContent = article.content_html || ''
                 if (mdContent) {
+                  // 构建索引：按顺序为标题分配 id（与 buildTocFromMarkdown 保持相同的 slug 逻辑）
+                  const idCounter = new Map<string, number>()
+                  const headingIdFor = (text: string, level: number) => {
+                    const plain = String(text || '')
+                      .replace(/\*\*(.+?)\*\*/g, '$1')
+                      .replace(/`([^`]+)`/g, '$1')
+                      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+                      .replace(/^[0-9]+[.、]\s*/, '')
+                    const base = slugify(plain) || `h-${level}`
+                    const n = (idCounter.get(base) || 0) + 1
+                    idCounter.set(base, n)
+                    return n > 1 ? `${base}-${n}` : base
+                  }
                   return (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeHighlight]}
+                      rehypePlugins={[[rehypeHighlight, { detect: true }]]}
                       components={{
-                        h1: ({ ...props }) => <h1 {...props} />,
-                        h2: ({ ...props }) => <h2 {...props} />,
-                        h3: ({ ...props }) => <h3 {...props} />,
-                        h4: ({ ...props }) => <h4 {...props} />,
+                        h1: ({ children, ...props }) => (
+                          <h1 id={headingIdFor(children, 1)} {...props}>{children}</h1>
+                        ),
+                        h2: ({ children, ...props }) => (
+                          <h2 id={headingIdFor(children, 2)} {...props}>{children}</h2>
+                        ),
+                        h3: ({ children, ...props }) => (
+                          <h3 id={headingIdFor(children, 3)} {...props}>{children}</h3>
+                        ),
+                        h4: ({ children, ...props }) => (
+                          <h4 id={headingIdFor(children, 4)} {...props}>{children}</h4>
+                        ),
                         p: ({ ...props }) => <p {...props} />,
                         ul: ({ ...props }) => <ul {...props} />,
                         ol: ({ ...props }) => <ol {...props} />,
@@ -229,7 +419,7 @@ export default function ArticleDetail() {
                         blockquote: ({ ...props }) => <blockquote {...props} />,
                         code: ({ ...props }) => <code {...props} />,
                         pre: ({ ...props }) => <pre {...props} />,
-                        a: ({ ...props }) => <a {...props} />,
+                        a: ({ ...props }) => <a target="_blank" rel="noreferrer noopener" {...props} />,
                         img: ({ ...props }) => <img {...props} alt={props.alt || ''} />,
                         table: ({ ...props }) => <table {...props} />,
                         thead: ({ ...props }) => <thead {...props} />,
@@ -238,6 +428,8 @@ export default function ArticleDetail() {
                         th: ({ ...props }) => <th {...props} />,
                         td: ({ ...props }) => <td {...props} />,
                         hr: ({ ...props }) => <hr {...props} />,
+                        div: ({ ...props }) => <div {...props} />,
+                        span: ({ ...props }) => <span {...props} />,
                       }}
                     >
                       {mdContent}
@@ -399,7 +591,42 @@ export default function ArticleDetail() {
               ))}
             </div>
           </section>
-        </>
+          </div> {/* 正文区 div */}
+
+          {/* 右侧目录悬浮导航（仅 xl+ 显示，内容较长时才有意义） */}
+          {tocItems.length >= 2 && (
+            <aside className="hidden xl:block w-[220px] shrink-0">
+              <div className="sticky top-24 card p-4" style={{ borderRadius: 'var(--radius-lg)' }}>
+                <div className="toc-widget">
+                  <div className="toc-widget-title">
+                    <FileText size={16} style={{ color: 'var(--accent-primary)' }} />
+                    目录导航
+                  </div>
+                  <div className="toc-list">
+                    {tocItems.map((it) => (
+                      <a
+                        key={it.id}
+                        href={`#${it.id}`}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          const el = document.getElementById(it.id)
+                          if (el) {
+                            window.scrollTo({ top: el.offsetTop - 85, behavior: 'smooth' })
+                            history.replaceState(null, '', `#${it.id}`)
+                          }
+                        }}
+                        className={`toc-item is-h${it.level}${activeToc === it.id ? ' active' : ''}`}
+                        title={it.text}
+                      >
+                        {it.text}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </aside>
+          )}
+        </div>
       )}
 
       {toast && <Toast message={toast.t} type={toast.type} onClose={() => setToast(null)} />}

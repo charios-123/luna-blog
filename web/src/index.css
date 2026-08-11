@@ -609,84 +609,171 @@
 }
 
 /* =========================================================
- * Markdown rendering (Article detail)
+ * Markdown rendering (Article detail) — beautified
  * =======================================================*/
 @layer components {
   .markdown-body {
     color: var(--text-fg);
     font-size: 16px;
-    line-height: 1.9;
+    line-height: 2;
     word-wrap: break-word;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
   }
 
   .markdown-body > * + * {
-    margin-top: 1.2em;
+    margin-top: 1.3em;
   }
 
+  /* ---------- 标题：左侧彩色竖条 + 锚点链接图标 ---------- */
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3,
+  .markdown-body h4 {
+    position: relative;
+    scroll-margin-top: 90px;
+    scroll-behavior: smooth;
+  }
   .markdown-body h1 {
-    scroll-margin-top: 80px;
-    margin-top: 2em;
-    margin-bottom: 0.8em;
-    font-size: 1.6em;
+    margin-top: 2.2em;
+    margin-bottom: 0.9em;
+    font-size: 1.7em;
     font-weight: 700;
     color: var(--text-heading);
     line-height: 1.4;
+    padding-left: 14px;
+    border-left: 5px solid transparent;
+    border-image: linear-gradient(180deg, var(--color-leaf-500), var(--color-leaf-300)) 1;
   }
   .markdown-body h2 {
-    scroll-margin-top: 80px;
-    margin-top: 1.8em;
-    margin-bottom: 0.7em;
-    font-size: 1.35em;
-    font-weight: 600;
+    margin-top: 2em;
+    margin-bottom: 0.8em;
+    font-size: 1.45em;
+    font-weight: 700;
     color: var(--text-heading);
-    padding-bottom: 0.3em;
-    border-bottom: 1px solid var(--border-muted);
     line-height: 1.4;
+    padding: 0.3em 0 0.3em 16px;
+    border-left: 6px solid transparent;
+    border-image: linear-gradient(180deg, var(--color-leaf-600), var(--color-leaf-400)) 1;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--color-leaf-500) 6%, transparent) 0%, transparent 60%);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
   }
   .markdown-body h3 {
-    scroll-margin-top: 80px;
-    margin-top: 1.5em;
-    margin-bottom: 0.6em;
-    font-size: 1.2em;
+    margin-top: 1.6em;
+    margin-bottom: 0.7em;
+    font-size: 1.25em;
     font-weight: 600;
     color: var(--text-heading);
     line-height: 1.4;
+    padding-left: 12px;
+    border-left: 4px solid var(--color-leaf-400);
+    border-radius: 2px;
   }
   .markdown-body h4 {
-    scroll-margin-top: 80px;
-    margin-top: 1.3em;
-    margin-bottom: 0.5em;
+    margin-top: 1.4em;
+    margin-bottom: 0.6em;
     font-size: 1.1em;
     font-weight: 600;
     color: var(--text-heading);
     line-height: 1.4;
+    padding-left: 10px;
+    border-left: 3px solid var(--color-leaf-300);
+  }
+  .markdown-body h1::before,
+  .markdown-body h2::before,
+  .markdown-body h3::before,
+  .markdown-body h4::before {
+    content: '';
   }
 
+  /* 悬停时显示锚点 # 图标 */
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3,
+  .markdown-body h4 {
+    cursor: pointer;
+  }
+  .markdown-body h1:hover::after,
+  .markdown-body h2:hover::after,
+  .markdown-body h3:hover::after,
+  .markdown-body h4:hover::after {
+    content: '#';
+    position: absolute;
+    right: -28px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7em;
+    font-weight: 500;
+    color: var(--color-leaf-500);
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+  }
+
+  /* ---------- 段落：首字下沉 drop-cap ---------- */
+  .markdown-body > p:first-of-type::first-letter {
+    float: left;
+    font-size: 3.4em;
+    line-height: 0.85;
+    padding: 0.08em 0.12em 0 0;
+    font-weight: 700;
+    color: var(--color-leaf-600);
+    font-family: 'Georgia', 'Noto Serif SC', 'Source Han Serif SC', serif;
+  }
   .markdown-body p {
-    margin: 1em 0;
-    line-height: 1.9;
+    margin: 1.1em 0;
+    line-height: 2;
     text-align: justify;
+    text-indent: 0;
   }
 
+  /* ---------- 列表 ---------- */
   .markdown-body ul,
   .markdown-body ol {
-    padding-left: 1.6em;
-    margin: 0.9em 0;
+    padding-left: 1.7em;
+    margin: 1em 0;
   }
   .markdown-body ul { list-style: disc; }
   .markdown-body ol { list-style: decimal; }
-  .markdown-body li + li { margin-top: 0.35em; }
+  .markdown-body li + li { margin-top: 0.4em; }
   .markdown-body li > ul,
   .markdown-body li > ol { margin: 0.4em 0; }
+  .markdown-body ul li::marker { color: var(--color-leaf-500); }
+  .markdown-body ol li::marker { color: var(--color-leaf-600); font-weight: 600; }
 
+  /* ---------- 引用块：渐变左栏+双引号图标+阴影 ---------- */
   .markdown-body blockquote {
-    margin: 1.2em 0;
-    padding: 0.6em 1em 0.6em 1.2em;
-    border-left: 3px solid var(--accent-primary);
-    background-color: var(--bg-muted);
-    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    position: relative;
+    margin: 1.3em 0;
+    padding: 1em 1.3em 1em 3.2em;
+    border-radius: var(--radius-lg);
+    background:
+      linear-gradient(135deg,
+        color-mix(in srgb, var(--color-leaf-400) 10%, var(--bg-surface-alt)) 0%,
+        color-mix(in srgb, var(--color-leaf-300) 6%, var(--bg-surface)) 100%);
+    border-left: 0;
     color: var(--text-muted);
+    box-shadow: 0 4px 18px -8px color-mix(in srgb, var(--color-leaf-600) 25%, transparent);
+  }
+  .markdown-body blockquote::before {
+    content: '“';
+    position: absolute;
+    left: 14px;
+    top: 6px;
+    font-size: 3em;
+    line-height: 1;
+    font-family: Georgia, serif;
+    font-weight: 700;
+    color: var(--color-leaf-500);
+    opacity: 0.5;
+  }
+  .markdown-body blockquote::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+    background: linear-gradient(180deg, var(--color-leaf-500), var(--color-leaf-300));
   }
   .markdown-body blockquote > p:first-child { margin-top: 0; }
   .markdown-body blockquote > p:last-child  { margin-bottom: 0; }
@@ -694,32 +781,192 @@
   .markdown-body strong {
     font-weight: 700;
     color: var(--text-heading);
+    padding: 0 1px;
   }
 
+  /* ---------- 行内代码：胶囊形状柔和绿色背景 ---------- */
   .markdown-body code {
     font-family: var(--font-mono);
     font-size: 0.85em;
-    padding: 0.15em 0.4em;
-    background-color: var(--bg-surface-alt);
-    border: 1px solid var(--border-muted);
-    border-radius: 0.35rem;
+    padding: 0.18em 0.55em;
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--color-leaf-400) 14%, var(--bg-surface-alt)) 0%,
+      color-mix(in srgb, var(--color-leaf-500) 10%, var(--bg-surface-alt)) 100%);
+    border: 1px solid color-mix(in srgb, var(--color-leaf-400) 25%, transparent);
+    border-radius: 9999px;
     color: var(--color-leaf-700);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--color-leaf-500) 8%, transparent);
+    white-space: nowrap;
   }
   .dark .markdown-body code {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--color-leaf-500) 18%, var(--bg-surface-alt)) 0%,
+      color-mix(in srgb, var(--color-leaf-400) 14%, var(--bg-surface-alt)) 100%);
+    border-color: color-mix(in srgb, var(--color-leaf-400) 30%, transparent);
     color: var(--color-leaf-300);
   }
 
+  /* ---------- 代码块：语言标签+复制按钮+条纹+圆角加大 ---------- */
   .markdown-body pre {
     position: relative;
-    margin: 1.3em 0;
-    padding: 1.1em 1.2em;
-    background-color: var(--color-slate-900);
-    color: #e6edf3;
-    border-radius: var(--radius-md);
+    margin: 1.4em 0;
+    padding: 3em 1.4em 1.4em;
+    background-color: #0d1117;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.008) 0px,
+        rgba(255, 255, 255, 0.008) 1px,
+        transparent 1px,
+        transparent 2.5px
+      ),
+      linear-gradient(180deg, #0d1117 0%, #111820 100%);
+    color: #e6edf3 !important;
+    border-radius: var(--radius-xl);
     overflow-x: auto;
     font-size: 0.85rem;
-    line-height: 1.6;
-    box-shadow: inset 0 0 0 1px #2a3540;
+    line-height: 1.7;
+    box-shadow:
+      0 10px 30px -12px rgba(0, 0, 0, 0.45),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  /* 亮色模式：hljs 覆盖为 GitHub Dark 风格（因为我们的代码块背景是深色） */
+  .markdown-body pre .hljs {
+    background: transparent !important;
+    color: #e6edf3 !important;
+  }
+  .markdown-body pre .hljs-keyword,
+  .markdown-body pre .hljs-selector-tag,
+  .markdown-body pre .hljs-literal,
+  .markdown-body pre .hljs-section,
+  .markdown-body pre .hljs-link {
+    color: #ff7b72 !important;
+  }
+  .markdown-body pre .hljs-function .hljs-keyword {
+    color: #ff7b72 !important;
+  }
+  .markdown-body pre .hljs-subst {
+    color: #e6edf3 !important;
+  }
+  .markdown-body pre .hljs-string,
+  .markdown-body pre .hljs-attr,
+  .markdown-body pre .hljs-symbol,
+  .markdown-body pre .hljs-bullet,
+  .markdown-body pre .hljs-addition {
+    color: #a5d6ff !important;
+  }
+  .markdown-body pre .hljs-title,
+  .markdown-body pre .hljs-title.function_,
+  .markdown-body pre .hljs-name {
+    color: #d2a8ff !important;
+  }
+  .markdown-body pre .hljs-comment,
+  .markdown-body pre .hljs-quote {
+    color: #8b949e !important;
+  }
+  .markdown-body pre .hljs-number,
+  .markdown-body pre .hljs-meta,
+  .markdown-body pre .hljs-built_in,
+  .markdown-body pre .hljs-builtin-name,
+  .markdown-body pre .hljs-literal,
+  .markdown-body pre .hljs-type,
+  .markdown-body pre .hljs-params {
+    color: #79c0ff !important;
+  }
+  .markdown-body pre .hljs-variable,
+  .markdown-body pre .hljs-template-variable {
+    color: #ffa657 !important;
+  }
+  .markdown-body pre .hljs-tag,
+  .markdown-body pre .hljs-tag .hljs-name,
+  .markdown-body pre .hljs-tag .hljs-attr {
+    color: #7ee787 !important;
+  }
+  .markdown-body pre .hljs-property,
+  .markdown-body pre .hljs-class .hljs-title {
+    color: #d2a8ff !important;
+  }
+  .markdown-body pre .hljs-deletion {
+    color: #ffa198 !important;
+    background: rgba(248, 81, 73, 0.15) !important;
+  }
+  .markdown-body pre .hljs-addition {
+    color: #7ee787 !important;
+    background: rgba(63, 185, 80, 0.15) !important;
+  }
+  .markdown-body pre .hljs-emphasis {
+    font-style: italic !important;
+  }
+  .markdown-body pre .hljs-strong {
+    font-weight: 700 !important;
+  }
+  .markdown-body pre::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    height: 2.5em;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  /* 三个小圆点 */
+  .markdown-body pre::after {
+    content: '';
+    position: absolute;
+    left: 1.1em;
+    top: 1em;
+    width: 44px;
+    height: 12px;
+    background-image:
+      radial-gradient(circle, #ff5f56 3.5px, transparent 4px),
+      radial-gradient(circle, #ffbd2e 3.5px, transparent 4px),
+      radial-gradient(circle, #27c93f 3.5px, transparent 4px);
+    background-size: 12px 12px;
+    background-repeat: no-repeat;
+    background-position: 0 0, 16px 0, 32px 0;
+    pointer-events: none;
+  }
+  .markdown-body pre .code-lang-tag {
+    position: absolute;
+    left: 4.5em;
+    top: 0.45em;
+    font-size: 0.72em;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.45);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .markdown-body pre .code-copy-btn {
+    position: absolute;
+    right: 1em;
+    top: 0.55em;
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+  }
+  .markdown-body pre:hover .code-copy-btn { opacity: 1; }
+  .markdown-body pre .code-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .markdown-body pre .code-copy-btn.copied {
+    background: rgba(39, 201, 63, 0.15);
+    border-color: rgba(39, 201, 63, 0.3);
+    color: #27c93f;
   }
   .markdown-body pre code {
     background: transparent;
@@ -727,112 +974,388 @@
     color: inherit;
     padding: 0;
     font-size: inherit;
+    box-shadow: none;
+    border-radius: 0;
+    white-space: pre;
   }
 
+  /* ---------- 图片：悬浮缩放渐变蒙层 ---------- */
   .markdown-body img {
     max-width: 100%;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    margin: 1em auto;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 28px -10px rgba(0, 0, 0, 0.25);
+    margin: 1.2em auto;
     display: block;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease;
+    cursor: zoom-in;
+  }
+  .markdown-body img:hover {
+    transform: translateY(-3px) scale(1.015);
+    box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.32);
+  }
+  .markdown-body p:has(img) {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+  }
+  .markdown-body p:has(img)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(180deg,
+      transparent 0%,
+      color-mix(in srgb, var(--color-leaf-500) 5%, transparent) 100%);
+    pointer-events: none;
   }
 
   .markdown-body a {
-    text-decoration: underline;
-    text-decoration-color: color-mix(in srgb, var(--accent-primary) 50%, transparent);
-    text-underline-offset: 3px;
+    color: var(--color-leaf-600);
+    text-decoration: none;
+    background-image: linear-gradient(90deg,
+      color-mix(in srgb, var(--color-leaf-500) 40%, transparent) 0%,
+      color-mix(in srgb, var(--color-leaf-400) 40%, transparent) 100%);
+    background-size: 0% 1.5px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size 0.25s ease;
   }
   .markdown-body a:hover {
-    text-decoration-color: var(--accent-primary);
+    color: var(--color-leaf-700);
+    background-size: 100% 1.5px;
+  }
+  .dark .markdown-body a {
+    color: var(--color-leaf-400);
+  }
+  .dark .markdown-body a:hover {
+    color: var(--color-leaf-300);
   }
 
+  /* ---------- 表格：斑马条纹+hover高亮+柔和圆角 ---------- */
   .markdown-body table {
     width: 100%;
-    border-collapse: collapse;
-    margin: 1.2em 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 1.3em 0;
     font-size: 0.9em;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     overflow: hidden;
     border: 1px solid var(--border-default);
+    background: var(--bg-surface);
+    box-shadow: 0 4px 14px -8px color-mix(in srgb, var(--color-leaf-600) 20%, transparent);
   }
   .markdown-body th,
   .markdown-body td {
-    padding: 0.65em 1em;
+    padding: 0.75em 1.1em;
     text-align: left;
     border-bottom: 1px solid var(--border-muted);
+    transition: background 0.15s ease;
   }
   .markdown-body th {
-    background-color: var(--bg-surface-alt);
-    font-weight: 600;
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--color-leaf-500) 12%, var(--bg-surface-alt)),
+      color-mix(in srgb, var(--color-leaf-400) 8%, var(--bg-surface-alt)));
+    font-weight: 700;
     color: var(--text-heading);
+    letter-spacing: 0.02em;
+    border-bottom: 2px solid color-mix(in srgb, var(--color-leaf-500) 30%, var(--border-default));
+  }
+  .markdown-body tbody tr:nth-child(even) td {
+    background: color-mix(in srgb, var(--color-leaf-500) 3%, transparent);
+  }
+  .markdown-body tbody tr:hover td {
+    background: color-mix(in srgb, var(--color-leaf-400) 8%, transparent);
   }
   .markdown-body tr:last-child td { border-bottom: none; }
 
+  /* ---------- 分隔线：渐变圆点装饰 ---------- */
   .markdown-body hr {
     border: none;
+    height: auto;
+    margin: 2.4em 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    overflow: visible;
+  }
+  .markdown-body hr::before,
+  .markdown-body hr::after {
+    content: '';
+    flex: 1;
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--border-default), transparent);
-    margin: 2.2em 0;
+  }
+  .markdown-body hr::before {
+    background: linear-gradient(90deg, transparent, var(--border-default));
+    max-width: 40%;
+  }
+  .markdown-body hr::after {
+    background: linear-gradient(90deg, var(--border-default), transparent);
+    max-width: 40%;
+  }
+  .markdown-body hr {
+    text-align: center;
+  }
+  .markdown-body hr {
+    position: relative;
+  }
+  .markdown-body hr::after {
+    content: '';
+  }
+  /* 用中间三个圆点替代 */
+  .markdown-body hr {
+    height: auto;
+    background: none;
+  }
+  .markdown-body hr::before,
+  .markdown-body hr::after {
+    content: '';
+    display: inline-block;
+    vertical-align: middle;
+    flex: 0 0 auto;
+    height: 1px;
+    width: 32%;
+  }
+  .markdown-body hr::before {
+    background: linear-gradient(90deg, transparent, var(--color-leaf-400));
+  }
+  .markdown-body hr::after {
+    background: linear-gradient(90deg, var(--color-leaf-400), transparent);
+  }
+  /* 中间圆点（通过背景图实现三个点） */
+  .markdown-body hr {
+    background-image:
+      radial-gradient(circle, var(--color-leaf-500) 3px, transparent 3.5px),
+      radial-gradient(circle, var(--color-leaf-400) 2.5px, transparent 3px),
+      radial-gradient(circle, var(--color-leaf-500) 3px, transparent 3.5px);
+    background-position:
+      calc(50% - 16px) center,
+      50% center,
+      calc(50% + 16px) center;
+    background-repeat: no-repeat;
+    background-size: 7px 7px;
+    padding: 10px 0;
   }
 
   /* Task list (GFM) */
   .markdown-body input[type="checkbox"] {
     margin-right: 0.5em;
+    accent-color: var(--color-leaf-500);
+  }
+  .markdown-body input[type="checkbox"]:checked {
+    background-color: var(--color-leaf-500);
+  }
+
+  /* ---------- 提示块容器（:::note tip warning:::） ---------- */
+  .markdown-body .md-callout {
+    margin: 1.3em 0;
+    padding: 1em 1.2em 1em 3.2em;
+    border-radius: var(--radius-lg);
+    position: relative;
+    box-shadow: 0 4px 16px -10px rgba(0, 0, 0, 0.2);
+  }
+  .markdown-body .md-callout .callout-icon {
+    position: absolute;
+    left: 16px;
+    top: 18px;
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .markdown-body .md-callout.callout-note {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, #3b82f6 10%, var(--bg-surface-alt)),
+      color-mix(in srgb, #3b82f6 5%, var(--bg-surface)));
+    border-left: 3px solid #3b82f6;
+  }
+  .markdown-body .md-callout.callout-note .callout-icon {
+    background: #3b82f6;
+    color: white;
+  }
+  .markdown-body .md-callout.callout-tip {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--color-leaf-500) 12%, var(--bg-surface-alt)),
+      color-mix(in srgb, var(--color-leaf-400) 6%, var(--bg-surface)));
+    border-left: 3px solid var(--color-leaf-500);
+  }
+  .markdown-body .md-callout.callout-tip .callout-icon {
+    background: var(--color-leaf-500);
+    color: white;
+  }
+  .markdown-body .md-callout.callout-warning {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, #f59e0b 12%, var(--bg-surface-alt)),
+      color-mix(in srgb, #f59e0b 6%, var(--bg-surface)));
+    border-left: 3px solid #f59e0b;
+  }
+  .markdown-body .md-callout.callout-warning .callout-icon {
+    background: #f59e0b;
+    color: white;
+  }
+  .markdown-body .md-callout > *:first-child { margin-top: 0; }
+  .markdown-body .md-callout > *:last-child  { margin-bottom: 0; }
+}
+
+/* ---------- 目录悬浮导航 ---------- */
+@layer components {
+  .toc-widget {
+    width: 100%;
+    padding: 0.1em;
+  }
+  .toc-widget-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 12px;
+  }
+  .toc-widget-title::before {
+    content: '';
+    width: 3px;
+    height: 16px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--color-leaf-500), var(--color-leaf-300));
+  }
+  .toc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 56vh;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .toc-list::-webkit-scrollbar {
+    width: 3px;
+  }
+  .toc-list::-webkit-scrollbar-thumb {
+    background: var(--border-muted);
+    border-radius: 3px;
+  }
+  .toc-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .toc-item {
+    display: block;
+    padding: 7px 12px 7px 14px;
+    font-size: 0.82em;
+    color: var(--text-subtle);
+    border-radius: var(--radius-md);
+    line-height: 1.45;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    border-left: 2px solid transparent;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .toc-item:hover {
+    background: color-mix(in srgb, var(--color-leaf-500) 8%, transparent);
+    color: var(--text-fg);
+  }
+  .toc-item.is-h3 { padding-left: 24px; font-size: 0.78em; }
+  .toc-item.is-h4 { padding-left: 32px; font-size: 0.74em; }
+  .toc-item.active {
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--color-leaf-500) 14%, transparent) 0%,
+      color-mix(in srgb, var(--color-leaf-400) 8%, transparent) 100%);
+    color: var(--color-leaf-700);
+    font-weight: 600;
+    border-left-color: var(--color-leaf-500);
+    transform: translateX(0);
+  }
+  .dark .toc-item.active {
+    color: var(--color-leaf-300);
+  }
+  .toc-empty {
+    padding: 14px;
+    font-size: 0.8em;
+    color: var(--text-subtle);
+    text-align: center;
   }
 }
 
 /* =========================================================
  * Dark mode: highlight.js theme switch
  * =======================================================*/
-.dark .hljs {
-  background: transparent !important;
-  color: #c9d1d9 !important;
-}
-.dark .hljs-keyword,
-.dark .hljs-selector-tag,
-.dark .hljs-literal,
-.dark .hljs-section,
-.dark .hljs-link {
-  color: #ff7b72 !important;
-}
-.dark .hljs-function .hljs-keyword {
-  color: #ff7b72 !important;
-}
-.dark .hljs-subst {
-  color: #c9d1d9 !important;
-}
-.dark .hljs-string,
-.dark .hljs-attr,
-.dark .hljs-symbol,
-.dark .hljs-bullet,
-.dark .hljs-addition {
-  color: #a5d6ff !important;
-}
-.dark .hljs-title,
-.dark .hljs-title.function_,
-.dark .hljs-name {
-  color: #d2a8ff !important;
-}
-.dark .hljs-comment,
-.dark .hljs-quote {
-  color: #8b949e !important;
-}
-.dark .hljs-number,
-.dark .hljs-meta,
-.dark .hljs-built_in,
-.dark .hljs-builtin-name,
-.dark .hljs-literal,
-.dark .hljs-type,
-.dark .hljs-params {
-  color: #79c0ff !important;
-}
-.dark .hljs-variable,
-.dark .hljs-template-variable {
-  color: #ffa657 !important;
-}
 .dark .markdown-body pre {
   background-color: #0d1117 !important;
-  box-shadow: inset 0 0 0 1px #21262d;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.008) 0px,
+      rgba(255, 255, 255, 0.008) 1px,
+      transparent 1px,
+      transparent 2.5px
+    ),
+    linear-gradient(180deg, #0d1117 0%, #111820 100%) !important;
+  box-shadow:
+    0 10px 30px -12px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.dark .markdown-body pre .hljs {
+  background: transparent !important;
+  color: #e6edf3 !important;
+}
+.dark .markdown-body pre .hljs-keyword,
+.dark .markdown-body pre .hljs-selector-tag,
+.dark .markdown-body pre .hljs-literal,
+.dark .markdown-body pre .hljs-section,
+.dark .markdown-body pre .hljs-link {
+  color: #ff7b72 !important;
+}
+.dark .markdown-body pre .hljs-function .hljs-keyword {
+  color: #ff7b72 !important;
+}
+.dark .markdown-body pre .hljs-subst {
+  color: #e6edf3 !important;
+}
+.dark .markdown-body pre .hljs-string,
+.dark .markdown-body pre .hljs-attr,
+.dark .markdown-body pre .hljs-symbol,
+.dark .markdown-body pre .hljs-bullet,
+.dark .markdown-body pre .hljs-addition {
+  color: #a5d6ff !important;
+}
+.dark .markdown-body pre .hljs-title,
+.dark .markdown-body pre .hljs-title.function_,
+.dark .markdown-body pre .hljs-name {
+  color: #d2a8ff !important;
+}
+.dark .markdown-body pre .hljs-comment,
+.dark .markdown-body pre .hljs-quote {
+  color: #8b949e !important;
+}
+.dark .markdown-body pre .hljs-number,
+.dark .markdown-body pre .hljs-meta,
+.dark .markdown-body pre .hljs-built_in,
+.dark .markdown-body pre .hljs-builtin-name,
+.dark .markdown-body pre .hljs-literal,
+.dark .markdown-body pre .hljs-type,
+.dark .markdown-body pre .hljs-params {
+  color: #79c0ff !important;
+}
+.dark .markdown-body pre .hljs-variable,
+.dark .markdown-body pre .hljs-template-variable {
+  color: #ffa657 !important;
+}
+.dark .markdown-body pre .hljs-tag,
+.dark .markdown-body pre .hljs-tag .hljs-name,
+.dark .markdown-body pre .hljs-tag .hljs-attr {
+  color: #7ee787 !important;
+}
+.dark .markdown-body pre .hljs-property,
+.dark .markdown-body pre .hljs-class .hljs-title {
+  color: #d2a8ff !important;
 }
 
 /* =========================================================
