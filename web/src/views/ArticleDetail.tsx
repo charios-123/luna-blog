@@ -6,8 +6,10 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import {
   getArticleDetail, likeArticle, unlikeArticle, getArticleComments, addComment,
-  deleteArticle as deleteArticleApi,
+  deleteArticle as deleteArticleApi, deleteComment,
 } from '@/api/article'
+import { likeComment, unlikeComment } from '@/api/comment'
+import { toast } from '@/components/toast'
 import { userStore, selectIsAdmin, selectIsLoggedIn, selectUser } from '@/stores/user'
 import Spinner from '@/components/ui/Spinner'
 import EmptyAvatar from '@/components/ui/EmptyAvatar'
@@ -304,17 +306,21 @@ export default function ArticleDetail() {
   })
 
   const deleteCommentMut = useMutation({
-    mutationFn: async (cid: any) => {
-      // 占位，后端接口接上后替换
-      await new Promise((r) => setTimeout(r, 250))
-      return cid
-    },
+    mutationFn: (cid: any) => deleteComment(cid).then(() => cid),
     onSuccess: (cid) => {
       setToast({ t: '评论已删除', type: 'ok' })
-      qc.setQueryData(['article-comments', id], (old: any) => ({
-        ...old,
-        list: (old?.list || []).filter((c: any) => c.id !== cid),
-      }))
+      qc.setQueryData(['article-comments', id], (old: any) => {
+        const list = old?.list || []
+        // 只移除被删除的那条评论，保留其兄弟回复和其他评论
+        const removeById = (arr: any[]): any[] =>
+          arr
+            .filter((c: any) => c.id !== cid)
+            .map((c: any) =>
+              c.replies?.length ? { ...c, replies: removeById(c.replies) } : c,
+            )
+        const prevTotal = typeof old?.total === 'number' ? old.total : list.length
+        return { ...old, list: removeById(list), total: Math.max(0, prevTotal - 1) }
+      })
     },
     onError: () => setToast({ t: '删除失败', type: 'error' }),
   })
@@ -561,7 +567,7 @@ export default function ArticleDetail() {
           <section className="mt-10 md:mt-12 card p-6 md:p-8 animate-[fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)]" style={{ borderRadius: 'var(--radius-xl)' }}>
             <h2 className="font-semibold text-lg md:text-xl mb-5 inline-flex items-center gap-2" style={{ color: 'var(--text-heading)' }}>
               <MessageCircle size={18} style={{ color: 'var(--accent-primary)' }} />
-              评论 <span className="text-sm font-normal" style={{ color: 'var(--text-subtle)' }}>({comments.length})</span>
+              评论 <span className="text-sm font-normal" style={{ color: 'var(--text-subtle)' }}>({commentsQ.data?.total ?? comments.length})</span>
             </h2>
 
             {/* 发表评论 */}
@@ -611,11 +617,9 @@ export default function ArticleDetail() {
                   key={c.id}
                   comment={c}
                   onReply={(target) => setReplyTarget(target)}
-                  onDelete={(cid) => {
-                    if (!canDel(c) || !confirm('确定删除该评论？')) return
-                    deleteCommentMut.mutate(cid)
-                  }}
-                  canDel={canDel(c)}
+                  onDelete={(cid) => deleteCommentMut.mutate(cid)}
+                  canDel={canDel}
+                  isLoggedIn={isLoggedIn}
                 />
               ))}
             </div>
@@ -636,15 +640,70 @@ export default function ArticleDetail() {
   )
 }
 
+function CommentLikeButton({
+  commentId, liked, count, isLoggedIn,
+}: {
+  commentId: any
+  liked: boolean
+  count: number
+  isLoggedIn: boolean
+}) {
+  const [state, setState] = useState({ liked, count })
+  const [pending, setPending] = useState(false)
+
+  // 评论列表刷新后同步点赞状态
+  useEffect(() => {
+    setState({ liked, count })
+  }, [liked, count])
+
+  const toggle = async () => {
+    if (!isLoggedIn) {
+      toast.warning('请先登录后再点赞')
+      return
+    }
+    if (pending) return
+    setPending(true)
+    const nextLiked = !state.liked
+    const nextCount = state.count + (nextLiked ? 1 : -1)
+    // 乐观更新
+    setState({ liked: nextLiked, count: Math.max(0, nextCount) })
+    try {
+      if (nextLiked) await likeComment(commentId)
+      else await unlikeComment(commentId)
+    } catch {
+      // 请求失败回滚（错误提示由请求拦截器统一处理）
+      setState({ liked: !nextLiked, count: state.count })
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      className="inline-flex items-center gap-1 hover:text-[var(--accent-primary)]"
+      style={{ color: state.liked ? 'var(--accent-primary)' : 'var(--text-muted)' }}
+    >
+      <ThumbsUp size={13} /> 赞 {state.count}
+    </button>
+  )
+}
+
 function CommentView({
-  comment, onReply, onDelete, canDel,
+  comment, onReply, onDelete, canDel, isLoggedIn,
 }: {
   comment: any
   onReply: (t: any) => void
   onDelete: (id: any) => void
-  canDel: boolean
+  canDel: (c: any) => boolean
+  isLoggedIn: boolean
 }) {
   const u = comment.user || {}
+  const handleDelete = (c: any) => {
+    if (!canDel(c)) return
+    if (!confirm('确定删除该评论？')) return
+    onDelete(c.id)
+  }
   return (
     <div className="flex gap-3 group">
       <EmptyAvatar name={u.nickname || u.username} avatar={u.avatar} size={40} />
@@ -669,33 +728,57 @@ function CommentView({
         />
         {comment.replies?.length > 0 && (
           <div className="mt-3 pl-4 space-y-4 border-l" style={{ borderColor: 'var(--border-muted)' }}>
-            {comment.replies.map((r: any) => (
-              <div key={r.id} className="flex gap-3">
-                <EmptyAvatar name={r.user?.nickname} avatar={r.user?.avatar} size={32} />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-medium" style={{ color: 'var(--text-heading)' }}>
-                      {r.user?.nickname || r.user?.username || '匿名'}
-                    </span>
-                    {r.reply_to && <span style={{ color: 'var(--text-subtle)' }}>回复</span>}
-                    {r.reply_to && <span style={{ color: 'var(--accent-primary)' }}>@{r.reply_to}</span>}
-                    <span className="text-xs ml-auto" style={{ color: 'var(--text-subtle)' }}>{timeAgo(r.created_at)}</span>
+            {comment.replies.map((r: any) => {
+              const ru = r.user || {}
+              const rt = r.reply_to_user || {}
+              return (
+                <div key={r.id} className="flex gap-3">
+                  <EmptyAvatar name={ru.nickname || ru.username} avatar={ru.avatar} size={32} />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 text-sm flex-wrap">
+                      <span className="font-medium" style={{ color: 'var(--text-heading)' }}>
+                        {ru.nickname || ru.username || '匿名'}
+                      </span>
+                      {r.user?.role === 'admin' && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'color-mix(in srgb, var(--accent-warm) 20%, transparent)', color: 'var(--accent-warm)' }}>
+                          博主
+                        </span>
+                      )}
+                      {r.reply_to_user && <span style={{ color: 'var(--text-subtle)' }}>回复</span>}
+                      {r.reply_to_user && (
+                        <span style={{ color: 'var(--accent-primary)' }}>@{rt.nickname || rt.username}</span>
+                      )}
+                      <span className="text-xs ml-auto" style={{ color: 'var(--text-subtle)' }}>{timeAgo(r.created_at)}</span>
+                    </div>
+                    <p className="mt-1 text-[14px]" style={{ color: 'var(--text-fg)' }}>{r.content}</p>
+                    <div className="mt-1 flex items-center gap-3 text-xs">
+                      <button
+                        onClick={() => onReply({ id: ru.id, name: ru.nickname || ru.username || '匿名', pid: comment.id })}
+                        className="inline-flex items-center gap-1 hover:text-[var(--accent-primary)]"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        <Reply size={13} /> 回复
+                      </button>
+                      <CommentLikeButton commentId={r.id} liked={!!r.is_liked} count={r.like_count || 0} isLoggedIn={isLoggedIn} />
+                      {canDel(r) && (
+                        <button onClick={() => handleDelete(r)} className="inline-flex items-center gap-1 hover:text-[var(--accent-danger)] ml-auto" style={{ color: 'var(--text-muted)' }}>
+                          <Trash2 size={13} /> 删除
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <p className="mt-1 text-[14px]" style={{ color: 'var(--text-fg)' }}>{r.content}</p>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
-        <div className="mt-2 flex items-center gap-3 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="mt-2 flex items-center gap-3 text-xs">
           <button onClick={() => onReply({ id: u.id, name: u.nickname || u.username || '匿名', pid: comment.id })} className="inline-flex items-center gap-1 hover:text-[var(--accent-primary)]" style={{ color: 'var(--text-muted)' }}>
             <Reply size={13} /> 回复
           </button>
-          <button className="inline-flex items-center gap-1 hover:text-[var(--accent-primary)]" style={{ color: 'var(--text-muted)' }}>
-            <ThumbsUp size={13} /> 赞 {comment.like_count || 0}
-          </button>
-          {canDel && (
-            <button onClick={() => onDelete(comment.id)} className="inline-flex items-center gap-1 hover:text-[var(--accent-danger)] ml-auto" style={{ color: 'var(--text-muted)' }}>
+          <CommentLikeButton commentId={comment.id} liked={!!comment.is_liked} count={comment.like_count || 0} isLoggedIn={isLoggedIn} />
+          {canDel(comment) && (
+            <button onClick={() => handleDelete(comment)} className="inline-flex items-center gap-1 hover:text-[var(--accent-danger)] ml-auto" style={{ color: 'var(--text-muted)' }}>
               <Trash2 size={13} /> 删除
             </button>
           )}

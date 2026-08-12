@@ -7,6 +7,7 @@ import (
 	"github.com/charios-123/luna-blog/internal/model/dto"
 	"github.com/charios-123/luna-blog/internal/model/po"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // UserUseCase 用户业务用例接口（实际管理管理员账号）
@@ -391,11 +392,29 @@ func NewCommentUseCase(d *data.Data) CommentUseCase {
 // Delete 删除评论
 func (uc *commentUseCase) Delete(id uint) error {
 	// 检查评论是否存在
-	if _, err := uc.data.CommentRepo.FindByID(id); err != nil {
+	comment, err := uc.data.CommentRepo.FindByID(id)
+	if err != nil {
 		return errors.New("评论不存在")
 	}
 
-	if err := uc.data.CommentRepo.Delete(id); err != nil {
+	// 删除评论：只删除本条评论。若删除的是父评论，将其子回复提升一级，
+	// 避免把别人的回复也一起"删掉"（变为不可见）
+	if err := uc.data.GetDB().Transaction(func(tx *gorm.DB) error {
+		if comment.ParentID != nil {
+			// 子评论：其子回复挂到父评论下
+			if err := tx.Model(&po.Comment{}).Where("parent_id = ?", id).
+				Update("parent_id", *comment.ParentID).Error; err != nil {
+				return err
+			}
+		} else {
+			// 顶级评论：其子回复提升为顶级评论
+			if err := tx.Model(&po.Comment{}).Where("parent_id = ?", id).
+				Update("parent_id", gorm.Expr("NULL")).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Delete(&po.Comment{}, id).Error
+	}); err != nil {
 		return errors.New("删除评论失败")
 	}
 

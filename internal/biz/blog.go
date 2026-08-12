@@ -551,6 +551,7 @@ func (uc *blogUseCase) CreateComment(req *dto.CreateCommentRequest) (*dto.Commen
 			Username: createdComment.User.Username,
 			Nickname: createdComment.User.Nickname,
 			Avatar:   createdComment.User.Avatar,
+			Role:     createdComment.User.Role,
 		},
 	}
 
@@ -592,6 +593,7 @@ func (uc *blogUseCase) GetArticleComments(articleID, userID uint, page, limit in
 				Username: comment.User.Username,
 				Nickname: comment.User.Nickname,
 				Avatar:   comment.User.Avatar,
+				Role:     comment.User.Role,
 			},
 			Replies: make([]dto.CommentResponse, 0),
 		}
@@ -649,7 +651,7 @@ func (uc *blogUseCase) GetArticleComments(articleID, userID uint, page, limit in
 
 	return &dto.CommentListResponse{
 		List:  result,
-		Total: int64(len(topLevelComments)), // 只统计顶级评论数
+		Total: int64(len(comments)), // 统计全部评论数（含回复）
 		Page:  page,
 		Limit: limit,
 	}, nil
@@ -730,8 +732,24 @@ func (uc *blogUseCase) DeleteComment(commentID, userID uint) error {
 		return errors.New("无权删除该评论")
 	}
 
-	// 删除评论（如果是父评论，子评论会被级联删除）
-	if err := uc.data.CommentRepo.Delete(commentID); err != nil {
+	// 删除评论：只删除本条评论。若删除的是父评论，将其子回复提升一级，
+	// 避免把别人的回复也一起"删掉"（变为不可见）
+	if err := uc.data.GetDB().Transaction(func(tx *gorm.DB) error {
+		if comment.ParentID != nil {
+			// 子评论：其子回复挂到父评论下
+			if err := tx.Model(&po.Comment{}).Where("parent_id = ?", commentID).
+				Update("parent_id", *comment.ParentID).Error; err != nil {
+				return err
+			}
+		} else {
+			// 顶级评论：其子回复提升为顶级评论
+			if err := tx.Model(&po.Comment{}).Where("parent_id = ?", commentID).
+				Update("parent_id", gorm.Expr("NULL")).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Delete(&po.Comment{}, commentID).Error
+	}); err != nil {
 		return err
 	}
 
