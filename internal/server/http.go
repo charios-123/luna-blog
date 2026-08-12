@@ -3,15 +3,16 @@ package server
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/charios-123/luna-blog/config"
 	"github.com/charios-123/luna-blog/internal/biz"
 	"github.com/charios-123/luna-blog/internal/data"
 	"github.com/charios-123/luna-blog/internal/server/middleware"
 	"github.com/charios-123/luna-blog/internal/service"
 	"github.com/charios-123/luna-blog/pkg/logger"
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	_ "github.com/charios-123/luna-blog/docs" // Swagger 文档
 )
@@ -65,12 +66,13 @@ func NewHTTPServer(b *biz.Biz, d *data.Data) *HTTPServer {
 	fileService := service.NewFileService(d)
 	blogService := service.NewBlogService(b.BlogUseCase)
 	aiService := service.NewAIService(b.AIUseCase)
+	weatherService := service.NewWeatherService(config.AppConfig.Weather.APIKey, config.AppConfig.Weather.Host, config.AppConfig.Weather.City)
 	onlineService := service.NewOnlineService(d)
 	visitService := service.NewVisitService(d)
 	analyticsService := service.NewAnalyticsService(d)
 
 	// 注册路由
-	registerRoutes(r, authService, articleService, userService, categoryService, tagService, commentService, chapterService, statsService, settingsService, fileService, blogService, aiService, onlineService, visitService, analyticsService)
+	registerRoutes(r, authService, articleService, userService, categoryService, tagService, commentService, chapterService, statsService, settingsService, fileService, blogService, aiService, weatherService, onlineService, visitService, analyticsService)
 
 	// 获取端口
 	port := viper.GetInt("server.port")

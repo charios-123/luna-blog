@@ -44,7 +44,10 @@ export default function Guestbook() {
   })
 
   const deleteMut = useMutation({
-    mutationFn: (cid: any) => deleteGuestbook(cid) as Promise<any>,
+    mutationFn: async (cid: any) => {
+      await deleteGuestbook(cid)
+      return cid
+    },
     onSuccess: (cid) => {
       setToast({ t: '留言已删除', type: 'ok' })
       qc.setQueryData(['guestbook'], (old: any) => ({

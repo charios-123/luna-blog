@@ -570,8 +570,15 @@ func (uc *blogUseCase) CreateComment(req *dto.CreateCommentRequest) (*dto.Commen
 
 // GetArticleComments 获取文章评论列表
 func (uc *blogUseCase) GetArticleComments(articleID, userID uint, page, limit int) (*dto.CommentListResponse, error) {
-	// 获取所有评论（不分页，为了构建完整的树形结构）
-	comments, _, err := uc.data.CommentRepo.List(1, 1000, articleID, "1") // 只返回审核通过的
+	var comments []*po.Comment
+	var err error
+	if articleID == 0 {
+		// 留言板消息(article_id 为空或 0),避免混入文章评论
+		comments, _, err = uc.data.CommentRepo.ListGuestbook(1, 1000, "1") // 只返回审核通过的
+	} else {
+		// 获取所有评论（不分页，为了构建完整的树形结构）
+		comments, _, err = uc.data.CommentRepo.List(1, 1000, articleID, "1") // 只返回审核通过的
+	}
 	if err != nil {
 		return nil, err
 	}

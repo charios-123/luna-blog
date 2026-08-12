@@ -17,6 +17,8 @@ type CommentRepo interface {
 	FindByID(id uint) (*po.Comment, error)
 	// List 查询评论列表
 	List(page, limit int, articleID uint, status string) ([]*po.Comment, int64, error)
+	// ListGuestbook 查询留言板消息(article_id 为空或 0)
+	ListGuestbook(page, limit int, status string) ([]*po.Comment, int64, error)
 	// UpdateStatus 更新评论状态
 	UpdateStatus(id uint, status int) error
 	// CountByArticle 统计文章评论数
@@ -72,6 +74,31 @@ func (r *commentRepo) List(page, limit int, articleID uint, status string) ([]*p
 	if articleID > 0 {
 		query = query.Where("article_id = ?", articleID)
 	}
+
+	// 状态过滤
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := query.Offset(offset).Limit(limit).Order("created_at DESC").Find(&comments).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return comments, total, nil
+}
+
+// ListGuestbook 查询留言板消息(article_id 为空或 0)
+func (r *commentRepo) ListGuestbook(page, limit int, status string) ([]*po.Comment, int64, error) {
+	var comments []*po.Comment
+	var total int64
+
+	offset := (page - 1) * limit
+	query := r.db.Model(&po.Comment{}).Preload("User").Preload("ReplyToUser").Preload("Article").
+		Where("article_id IS NULL OR article_id = ?", 0)
 
 	// 状态过滤
 	if status != "" {

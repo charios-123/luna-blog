@@ -1,9 +1,9 @@
 package server
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/charios-123/luna-blog/internal/server/middleware"
 	"github.com/charios-123/luna-blog/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
 // registerRoutes 注册路由
@@ -21,6 +21,7 @@ func registerRoutes(
 	fileService *service.FileService,
 	blogService *service.BlogService,
 	aiService *service.AIService,
+	weatherService *service.WeatherService,
 	onlineService *service.OnlineService,
 	visitService *service.VisitService,
 	analyticsService *service.AnalyticsService,
@@ -83,6 +84,9 @@ func registerRoutes(
 
 		// 站点设置（公开访问，用于前端显示备案信息等）
 		blog.GET("/settings", settingsService.GetPublic) // 获取站点设置
+
+		// 天气（后端代理和风天气，避免暴露 API Key）
+		blog.GET("/weather", weatherService.GetWeather) // 获取天气
 	}
 
 	// 博客可选认证路由（支持登录和未登录状态）

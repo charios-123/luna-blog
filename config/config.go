@@ -19,6 +19,7 @@ type Config struct {
 	OSS      OSSConfig      `mapstructure:"oss"`
 	Redis    RedisConfig    `mapstructure:"redis"`
 	AI       AIConfig       `mapstructure:"ai"`
+	Weather  WeatherConfig  `mapstructure:"weather"`
 	Log      LogConfig      `mapstructure:"log"`
 }
 
@@ -77,6 +78,13 @@ type AIConfig struct {
 	MaxContentChars int    `mapstructure:"max_content_chars"`
 }
 
+// WeatherConfig 天气配置(和风天气)
+type WeatherConfig struct {
+	APIKey string `mapstructure:"api_key"` // 通过环境变量 QWEATHER_API_KEY 注入
+	Host   string `mapstructure:"host"`    // 和风控制台分配的 API Host,如 https://xxxx.qweatherapi.com
+	City   string `mapstructure:"city"`    // 城市名(中文或拼音),如 广州 / guangzhou
+}
+
 var AppConfig *Config
 var DB *gorm.DB
 
@@ -111,6 +119,9 @@ func LoadConfig(configPath string) error {
 	viper.BindEnv("ai.api_key", "AI_API_KEY")
 	viper.BindEnv("ai.base_url", "AI_BASE_URL")
 	viper.BindEnv("ai.model", "AI_MODEL")
+	viper.BindEnv("weather.api_key", "QWEATHER_API_KEY")
+	viper.BindEnv("weather.host", "QWEATHER_HOST")
+	viper.BindEnv("weather.city", "WEATHER_CITY")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)

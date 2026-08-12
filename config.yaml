@@ -37,6 +37,12 @@ ai:
   timeout: 60 # 单次请求超时(秒)
   max_content_chars: 8000 # 发送给模型的文章正文最大字符数
 
+# 天气配置(和风天气,key 通过环境变量 QWEATHER_API_KEY 注入)
+weather:
+  api_key: "" # 通过环境变量 QWEATHER_API_KEY 注入,勿写入本文件
+  host: "https://p45n8phtfy.re.qweatherapi.com" # 和风控制台分配的 API Host
+  city: "新乡" # 城市名(中文或拼音),如 广州 / guangzhou
+
 log:
   level: debug # debug, info, warn, error
   format: text # json, text
