@@ -5,9 +5,9 @@ package cmd
 
 import (
 	"github.com/google/wire"
-	"github.com/ydcloud-dy/leaf-api/internal/biz"
-	"github.com/ydcloud-dy/leaf-api/internal/data"
-	"github.com/ydcloud-dy/leaf-api/internal/server"
+	"github.com/charios-123/luna-blog/internal/biz"
+	"github.com/charios-123/luna-blog/internal/data"
+	"github.com/charios-123/luna-blog/internal/server"
 	"gorm.io/gorm"
 )
 

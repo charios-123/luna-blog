@@ -3,10 +3,10 @@ package biz
 import (
 	"errors"
 
-	"github.com/ydcloud-dy/leaf-api/internal/data"
-	"github.com/ydcloud-dy/leaf-api/internal/model/dto"
-	"github.com/ydcloud-dy/leaf-api/internal/model/po"
-	"github.com/ydcloud-dy/leaf-api/pkg/jwt"
+	"github.com/charios-123/luna-blog/internal/data"
+	"github.com/charios-123/luna-blog/internal/model/dto"
+	"github.com/charios-123/luna-blog/internal/model/po"
+	"github.com/charios-123/luna-blog/pkg/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
 

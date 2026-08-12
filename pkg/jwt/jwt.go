@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/ydcloud-dy/leaf-api/config"
+	"github.com/charios-123/luna-blog/config"
 )
 
 // Claims JWT声明

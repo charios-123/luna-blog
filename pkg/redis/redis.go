@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/ydcloud-dy/leaf-api/config"
+	"github.com/charios-123/luna-blog/config"
 )
 
 var (

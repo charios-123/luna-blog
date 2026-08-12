@@ -141,8 +141,8 @@
 **1. 克隆项目**
 
 ```bash
-git clone https://github.com/ydcloud-dy/leaf-api.git
-cd leaf-api
+git clone https://github.com/charios-123/luna-blog.git
+cd luna-blog
 ```
 
 **2. 安装依赖**

@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ydcloud-dy/leaf-api/pkg/jwt"
-	"github.com/ydcloud-dy/leaf-api/pkg/response"
+	"github.com/charios-123/luna-blog/pkg/jwt"
+	"github.com/charios-123/luna-blog/pkg/response"
 )
 
 // JWTAuth JWT认证中间件

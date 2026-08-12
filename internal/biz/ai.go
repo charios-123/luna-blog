@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ydcloud-dy/leaf-api/config"
-	"github.com/ydcloud-dy/leaf-api/internal/data"
-	"github.com/ydcloud-dy/leaf-api/internal/model/dto"
-	"github.com/ydcloud-dy/leaf-api/pkg/logger"
+	"github.com/charios-123/luna-blog/config"
+	"github.com/charios-123/luna-blog/internal/data"
+	"github.com/charios-123/luna-blog/internal/model/dto"
+	"github.com/charios-123/luna-blog/pkg/logger"
 )
 
 // AIUseCase AI 能力接口

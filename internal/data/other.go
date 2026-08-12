@@ -3,7 +3,7 @@ package data
 import (
 	"time"
 
-	"github.com/ydcloud-dy/leaf-api/internal/model/po"
+	"github.com/charios-123/luna-blog/internal/model/po"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

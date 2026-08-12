@@ -7,13 +7,13 @@ import (
 	"github.com/spf13/viper"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"github.com/ydcloud-dy/leaf-api/internal/biz"
-	"github.com/ydcloud-dy/leaf-api/internal/data"
-	"github.com/ydcloud-dy/leaf-api/internal/server/middleware"
-	"github.com/ydcloud-dy/leaf-api/internal/service"
-	"github.com/ydcloud-dy/leaf-api/pkg/logger"
+	"github.com/charios-123/luna-blog/internal/biz"
+	"github.com/charios-123/luna-blog/internal/data"
+	"github.com/charios-123/luna-blog/internal/server/middleware"
+	"github.com/charios-123/luna-blog/internal/service"
+	"github.com/charios-123/luna-blog/pkg/logger"
 
-	_ "github.com/ydcloud-dy/leaf-api/docs" // Swagger 文档
+	_ "github.com/charios-123/luna-blog/docs" // Swagger 文档
 )
 
 // HTTPServer HTTP 服务器

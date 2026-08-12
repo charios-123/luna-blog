@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ydcloud-dy/leaf-api/internal/data"
-	"github.com/ydcloud-dy/leaf-api/internal/model/po"
-	"github.com/ydcloud-dy/leaf-api/pkg/redis"
-	"github.com/ydcloud-dy/leaf-api/pkg/response"
+	"github.com/charios-123/luna-blog/internal/data"
+	"github.com/charios-123/luna-blog/internal/model/po"
+	"github.com/charios-123/luna-blog/pkg/redis"
+	"github.com/charios-123/luna-blog/pkg/response"
 )
 
 // AnalyticsService 数据分析服务

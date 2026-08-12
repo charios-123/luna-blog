@@ -9,16 +9,7 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "https://github.com/ydcloud-dy/leaf-api",
-        "contact": {
-            "name": "API Support",
-            "url": "https://github.com/ydcloud-dy/leaf-api/issues",
-            "email": "support@example.com"
-        },
-        "license": {
-            "name": "MIT",
-            "url": "https://opensource.org/licenses/MIT"
-        },
+        "contact": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -588,6 +579,60 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/response.Response"
                         }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/articles/export": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "将指定或所有文章导出为 ZIP 文件，包含 Markdown 文件和图片",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/zip"
+                ],
+                "tags": [
+                    "文章管理"
+                ],
+                "summary": "批量导出文章",
+                "parameters": [
+                    {
+                        "description": "导出请求，article_ids 为空表示导出全部",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ExportArticleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ZIP 文件"
                     },
                     "400": {
                         "description": "请求参数错误",
@@ -1275,6 +1320,103 @@ const docTemplate = `{
                 }
             }
         },
+        "/blog/articles/{id}/adjacent": {
+            "get": {
+                "description": "获取指定文章的上一篇和下一篇文章",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "博客前台"
+                ],
+                "summary": "获取相邻文章",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "文章ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "文章不存在",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/articles/{id}/ai/chat": {
+            "post": {
+                "description": "基于当前文章内容回答读者提问",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "博客前台"
+                ],
+                "summary": "文章 AI 问答",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "文章ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "对话消息列表",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AIChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/blog/articles/{id}/comments": {
             "get": {
                 "description": "获取指定文章的评论列表（包含用户点赞状态）",
@@ -1518,6 +1660,57 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/articles/{id}/related": {
+            "get": {
+                "description": "根据标签、分类和热度获取相关文章",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "博客前台"
+                ],
+                "summary": "获取相关文章",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "文章ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 6,
+                        "description": "返回数量",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
                         "schema": {
                             "$ref": "#/definitions/response.Response"
                         }
@@ -3153,6 +3346,23 @@ const docTemplate = `{
                 }
             }
         },
+        "/feed.xml": {
+            "get": {
+                "description": "输出最新文章 feed.xml",
+                "produces": [
+                    "text/xml"
+                ],
+                "tags": [
+                    "博客前台"
+                ],
+                "summary": "生成 RSS",
+                "responses": {
+                    "200": {
+                        "description": "XML"
+                    }
+                }
+            }
+        },
         "/files": {
             "get": {
                 "security": [
@@ -3420,6 +3630,23 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/response.Response"
                         }
+                    }
+                }
+            }
+        },
+        "/sitemap.xml": {
+            "get": {
+                "description": "输出已发布文章的 sitemap.xml",
+                "produces": [
+                    "text/xml"
+                ],
+                "tags": [
+                    "博客前台"
+                ],
+                "summary": "生成 Sitemap",
+                "responses": {
+                    "200": {
+                        "description": "XML"
                     }
                 }
             }
@@ -3839,6 +4066,29 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.AIChatMessage": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "role": {
+                    "description": "user / assistant",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AIChatRequest": {
+            "type": "object",
+            "properties": {
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AIChatMessage"
+                    }
+                }
+            }
+        },
         "dto.BatchDeleteRequest": {
             "type": "object",
             "required": [
@@ -3903,6 +4153,10 @@ const docTemplate = `{
                     "description": "创建时间，可选",
                     "type": "string"
                 },
+                "status": {
+                    "description": "状态，可选",
+                    "type": "integer"
+                },
                 "tag_ids": {
                     "description": "标签ID列表，可选",
                     "type": "array",
@@ -3931,12 +4185,12 @@ const docTemplate = `{
         "dto.CreateArticleRequest": {
             "type": "object",
             "required": [
-                "category_id",
                 "content_markdown",
                 "title"
             ],
             "properties": {
                 "category_id": {
+                    "description": "必选,由 service 层校验并给出中文提示",
                     "type": "integer"
                 },
                 "chapter_id": {
@@ -4073,6 +4327,18 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 3
+                }
+            }
+        },
+        "dto.ExportArticleRequest": {
+            "type": "object",
+            "properties": {
+                "article_ids": {
+                    "description": "文章ID列表，为空表示导出全部",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },
@@ -4277,25 +4543,17 @@ const docTemplate = `{
                 }
             }
         }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "description": "JWT Token，格式：Bearer {token}",
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
-        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0.0",
-	Host:             "localhost:8888",
-	BasePath:         "/",
+	Version:          "",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "Leaf API",
-	Description:      "博客系统后端 API 文档",
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

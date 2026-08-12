@@ -1,7 +1,7 @@
 package biz
 
 import (
-	"github.com/ydcloud-dy/leaf-api/internal/data"
+	"github.com/charios-123/luna-blog/internal/data"
 )
 
 // Biz 业务逻辑层结构

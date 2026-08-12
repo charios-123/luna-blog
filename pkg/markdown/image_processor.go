@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ydcloud-dy/leaf-api/pkg/oss"
+	"github.com/charios-123/luna-blog/pkg/oss"
 )
 
 // ImageProcessor Markdown 图片处理器

@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"github.com/ydcloud-dy/leaf-api/config"
+	"github.com/charios-123/luna-blog/config"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 

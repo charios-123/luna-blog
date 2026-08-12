@@ -1,5 +1,19 @@
-basePath: /
 definitions:
+  dto.AIChatMessage:
+    properties:
+      content:
+        type: string
+      role:
+        description: user / assistant
+        type: string
+    type: object
+  dto.AIChatRequest:
+    properties:
+      messages:
+        items:
+          $ref: '#/definitions/dto.AIChatMessage'
+        type: array
+    type: object
   dto.BatchDeleteRequest:
     properties:
       article_ids:
@@ -43,6 +57,9 @@ definitions:
       created_at:
         description: 创建时间，可选
         type: string
+      status:
+        description: 状态，可选
+        type: integer
       tag_ids:
         description: 标签ID列表，可选
         items:
@@ -65,6 +82,7 @@ definitions:
   dto.CreateArticleRequest:
     properties:
       category_id:
+        description: 必选,由 service 层校验并给出中文提示
         type: integer
       chapter_id:
         description: 章节ID，可为空
@@ -98,7 +116,6 @@ definitions:
         maxLength: 200
         type: string
     required:
-    - category_id
     - content_markdown
     - title
     type: object
@@ -168,6 +185,14 @@ definitions:
     - email
     - password
     - username
+    type: object
+  dto.ExportArticleRequest:
+    properties:
+      article_ids:
+        description: 文章ID列表，为空表示导出全部
+        items:
+          type: integer
+        type: array
     type: object
   dto.LoginRequest:
     properties:
@@ -313,19 +338,8 @@ definitions:
       message:
         type: string
     type: object
-host: localhost:8888
 info:
-  contact:
-    email: support@example.com
-    name: API Support
-    url: https://github.com/ydcloud-dy/leaf-api/issues
-  description: 博客系统后端 API 文档
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
-  termsOfService: https://github.com/ydcloud-dy/leaf-api
-  title: Leaf API
-  version: 1.0.0
+  contact: {}
 paths:
   /analytics/online/stats:
     get:
@@ -837,6 +851,40 @@ paths:
       summary: 批量更新文章字段
       tags:
       - 文章管理
+  /articles/export:
+    post:
+      consumes:
+      - application/json
+      description: 将指定或所有文章导出为 ZIP 文件，包含 Markdown 文件和图片
+      parameters:
+      - description: 导出请求，article_ids 为空表示导出全部
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ExportArticleRequest'
+      produces:
+      - application/zip
+      responses:
+        "200":
+          description: ZIP 文件
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: 批量导出文章
+      tags:
+      - 文章管理
   /articles/import:
     post:
       consumes:
@@ -1049,6 +1097,70 @@ paths:
       summary: 获取文章详情
       tags:
       - 博客前台
+  /blog/articles/{id}/adjacent:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定文章的上一篇和下一篇文章
+      parameters:
+      - description: 文章ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: 文章不存在
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 获取相邻文章
+      tags:
+      - 博客前台
+  /blog/articles/{id}/ai/chat:
+    post:
+      consumes:
+      - application/json
+      description: 基于当前文章内容回答读者提问
+      parameters:
+      - description: 文章ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 对话消息列表
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AIChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 文章 AI 问答
+      tags:
+      - 博客前台
   /blog/articles/{id}/comments:
     get:
       consumes:
@@ -1208,6 +1320,40 @@ paths:
       security:
       - BearerAuth: []
       summary: 点赞文章
+      tags:
+      - 博客前台
+  /blog/articles/{id}/related:
+    get:
+      consumes:
+      - application/json
+      description: 根据标签、分类和热度获取相关文章
+      parameters:
+      - description: 文章ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 6
+        description: 返回数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 获取相关文章
       tags:
       - 博客前台
   /blog/articles/archive:
@@ -2322,6 +2468,17 @@ paths:
       summary: 更新评论状态
       tags:
       - 评论管理
+  /feed.xml:
+    get:
+      description: 输出最新文章 feed.xml
+      produces:
+      - text/xml
+      responses:
+        "200":
+          description: XML
+      summary: 生成 RSS
+      tags:
+      - 博客前台
   /files:
     get:
       consumes:
@@ -2495,6 +2652,17 @@ paths:
       summary: 更新系统设置
       tags:
       - 系统设置
+  /sitemap.xml:
+    get:
+      description: 输出已发布文章的 sitemap.xml
+      produces:
+      - text/xml
+      responses:
+        "200":
+          description: XML
+      summary: 生成 Sitemap
+      tags:
+      - 博客前台
   /tags:
     post:
       consumes:
@@ -2759,10 +2927,4 @@ paths:
       summary: 更新用户
       tags:
       - 用户管理
-securityDefinitions:
-  BearerAuth:
-    description: JWT Token，格式：Bearer {token}
-    in: header
-    name: Authorization
-    type: apiKey
 swagger: "2.0"

@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/ydcloud-dy/leaf-api/internal/model/po"
-	"github.com/ydcloud-dy/leaf-api/pkg/logger"
-	"github.com/ydcloud-dy/leaf-api/pkg/mailer"
+	"github.com/charios-123/luna-blog/internal/model/po"
+	"github.com/charios-123/luna-blog/pkg/logger"
+	"github.com/charios-123/luna-blog/pkg/mailer"
 )
 
 const (

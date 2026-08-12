@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ydcloud-dy/leaf-api/cmd"
+	"github.com/charios-123/luna-blog/cmd"
 )
 
 var (
@@ -17,10 +17,10 @@ var (
 // @title Leaf API
 // @version 1.0.0
 // @description 博客系统后端 API 文档
-// @termsOfService https://github.com/ydcloud-dy/leaf-api
+// @termsOfService https://github.com/charios-123/luna-blog
 
 // @contact.name API Support
-// @contact.url https://github.com/ydcloud-dy/leaf-api/issues
+// @contact.url https://github.com/charios-123/luna-blog/issues
 // @contact.email support@example.com
 
 // @license.name MIT

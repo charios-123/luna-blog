@@ -151,7 +151,7 @@ type LoginRequest struct {
 1. 已运行 `swag init` 生成了 docs 包
 2. 在 `http.go` 中导入了 docs 包：
    ```go
-   _ "github.com/ydcloud-dy/leaf-api/docs"
+   _ "github.com/charios-123/luna-blog/docs"
    ```
 
 ## 提示

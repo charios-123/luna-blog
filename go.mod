@@ -1,4 +1,4 @@
-module github.com/ydcloud-dy/leaf-api
+module github.com/charios-123/luna-blog
 
 go 1.24.0
 

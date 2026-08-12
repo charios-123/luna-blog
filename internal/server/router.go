@@ -2,8 +2,8 @@ package server
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/ydcloud-dy/leaf-api/internal/server/middleware"
-	"github.com/ydcloud-dy/leaf-api/internal/service"
+	"github.com/charios-123/luna-blog/internal/server/middleware"
+	"github.com/charios-123/luna-blog/internal/service"
 )
 
 // registerRoutes 注册路由

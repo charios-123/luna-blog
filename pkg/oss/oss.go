@@ -11,7 +11,7 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/google/uuid"
-	"github.com/ydcloud-dy/leaf-api/config"
+	"github.com/charios-123/luna-blog/config"
 )
 
 var client *oss.Client

@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ydcloud-dy/leaf-api/internal/biz"
-	"github.com/ydcloud-dy/leaf-api/internal/model/dto"
-	"github.com/ydcloud-dy/leaf-api/pkg/response"
+	"github.com/charios-123/luna-blog/internal/biz"
+	"github.com/charios-123/luna-blog/internal/model/dto"
+	"github.com/charios-123/luna-blog/pkg/response"
 )
 
 // ArticleService 文章服务
