@@ -2,7 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { Moon } from 'lucide-react'
 import Header from '@/components/Header'
 import GlobalSidebar from '@/components/GlobalSidebar'
-import { Toaster } from '@/api/toast'
+import { Toaster } from '@/components/toast'
 import { useHeartbeat } from '@/hooks/useHeartbeat'
 import { useVisitTracking } from '@/hooks/useVisitTracking'
 

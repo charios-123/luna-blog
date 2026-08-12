@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { useUserStore } from '@/stores/user'
-import { toast } from './toast'
+import { toast } from "@/components/toast";
 
 // API 基址：开发环境走 Vite 代理(/api)，生产环境同域
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'

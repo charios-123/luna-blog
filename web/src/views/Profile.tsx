@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { getUserInfo, updateUserProfile, changePassword, uploadFile } from '@/api/user'
 import { userStore, selectUser } from '@/stores/user'
-import { toast } from '@/api/toast'
+import { toast } from '@/components/toast'
 import Spinner from '@/components/ui/Spinner'
 import EmptyAvatar from '@/components/ui/EmptyAvatar'
 import {

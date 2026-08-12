@@ -14,7 +14,7 @@ var (
 	showVer    bool
 )
 
-// @title Leaf API
+// @title Luna Blog API
 // @version 1.0.0
 // @description 博客系统后端 API 文档
 // @termsOfService https://github.com/charios-123/luna-blog

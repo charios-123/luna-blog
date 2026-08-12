@@ -1,8 +1,22 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "description": "博客系统后端 API 文档",
+        "title": "Luna Blog API",
+        "termsOfService": "https://github.com/charios-123/luna-blog",
+        "contact": {
+            "name": "API Support",
+            "url": "https://github.com/charios-123/luna-blog/issues",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "1.0.0"
     },
+    "host": "localhost:8888",
+    "basePath": "/",
     "paths": {
         "/analytics/online/stats": {
             "get": {
@@ -4531,6 +4545,14 @@
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "JWT Token，格式：Bearer {token}",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }

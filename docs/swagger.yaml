@@ -1,3 +1,4 @@
+basePath: /
 definitions:
   dto.AIChatMessage:
     properties:
@@ -338,8 +339,19 @@ definitions:
       message:
         type: string
     type: object
+host: localhost:8888
 info:
-  contact: {}
+  contact:
+    email: support@example.com
+    name: API Support
+    url: https://github.com/charios-123/luna-blog/issues
+  description: 博客系统后端 API 文档
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://github.com/charios-123/luna-blog
+  title: Luna Blog API
+  version: 1.0.0
 paths:
   /analytics/online/stats:
     get:
@@ -2927,4 +2939,10 @@ paths:
       summary: 更新用户
       tags:
       - 用户管理
+securityDefinitions:
+  BearerAuth:
+    description: JWT Token，格式：Bearer {token}
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"
