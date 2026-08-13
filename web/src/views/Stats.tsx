@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getStats as getBlogStats, getHotArticles } from '@/api/stats'
+import { getStats as getBlogStats, getHotArticles, get7DaysVisits } from '@/api/stats'
 import { getArticles } from '@/api/article'
 import Spinner from '@/components/ui/Spinner'
 import {
@@ -8,8 +8,10 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { formatDate } from '@/lib/utils'
+import { userStore, selectIsLoggedIn } from '@/stores/user'
 
 export default function Stats() {
+  const isLoggedIn = userStore(selectIsLoggedIn)
   const statsQ = useQuery({
     queryKey: ['stats-page'],
     queryFn: () => getBlogStats().catch(() => ({})) as Promise<any>,
@@ -18,12 +20,17 @@ export default function Stats() {
     queryKey: ['stats-hot-articles'],
     queryFn: () => getHotArticles().catch(() => ({})) as Promise<any>,
   })
+  const visitsQ = useQuery({
+    queryKey: ['stats-visits-7d'],
+    queryFn: () => get7DaysVisits().catch(() => null) as Promise<any>,
+  })
   const latestQ = useQuery({
     queryKey: ['stats-latest'],
     queryFn: () => getArticles({ page: 1, limit: 5 }).catch(() => ({ list: [] })) as Promise<any>,
   })
 
   const s: any = statsQ.data || {}
+  const visits: any = visitsQ.data
   const hotList: any[] = Array.isArray(hotQ.data?.list)
     ? hotQ.data.list
     : Array.isArray(hotQ.data) ? hotQ.data : []
@@ -75,6 +82,33 @@ export default function Stats() {
           ))}
         </div>
       )}
+
+      {/* 近 7 天访问趋势 */}
+      <div className="card p-6 md:p-7 animate-[fade-up_0.55s_cubic-bezier(0.22,1,0.36,1)]" style={{ borderRadius: 'var(--radius-xl)' }}>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+          <h3 className="font-semibold text-lg flex items-center gap-2" style={{ color: 'var(--text-heading)' }}>
+            <TrendingUp size={18} style={{ color: 'var(--accent-primary)' }} />
+            近 7 天访问趋势
+          </h3>
+          {visits?.total_pv != null && (
+            <span className="text-xs" style={{ color: 'var(--text-subtle)' }}>
+              累计 <b style={{ color: 'var(--accent-primary)' }}>{visits.total_pv}</b> PV ·{' '}
+              <b style={{ color: 'var(--accent-warm)' }}>{visits.total_uv}</b> UV
+            </span>
+          )}
+        </div>
+        {visitsQ.isFetching && !visitsQ.data ? (
+          <div className="flex justify-center py-10"><Spinner /></div>
+        ) : !visits ? (
+          <p className="text-sm py-10 text-center" style={{ color: 'var(--text-subtle)' }}>
+            {isLoggedIn ? '暂无访问数据' : '登录后查看近 7 天访问趋势'}
+          </p>
+        ) : (visits.pv || []).every((n: number) => !n) ? (
+          <p className="text-sm py-10 text-center" style={{ color: 'var(--text-subtle)' }}>暂无访问数据</p>
+        ) : (
+          <VisitTrendChart days={visits.dates || []} pv={visits.pv || []} />
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 热门文章 */}
@@ -175,5 +209,43 @@ export default function Stats() {
         </p>
       </div>
     </div>
+  )
+}
+
+// 近 7 天访问趋势图（轻量 SVG 柱状图，不引入图表库）
+function VisitTrendChart({ days, pv }: { days: string[]; pv: number[] }) {
+  const W = 720
+  const H = 210
+  const padT = 26
+  const padB = 36
+  const innerH = H - padT - padB
+  const maxPV = Math.max(...pv, 1)
+  const barW = 34
+  const gap = days.length > 1 ? (W - 24 - days.length * barW) / (days.length - 1) : 0
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 230 }}>
+      {days.map((d, i) => {
+        const n = pv[i] || 0
+        const bh = n > 0 ? Math.max((n / maxPV) * innerH, 4) : 2
+        const x = 12 + i * (barW + gap)
+        const y = padT + innerH - bh
+        const isToday = i === days.length - 1
+        const color = isToday ? 'var(--accent-warm)' : 'var(--accent-primary)'
+        return (
+          <g key={d}>
+            <rect x={x} y={y} width={barW} height={bh} rx={5} fill={color} opacity={isToday ? 1 : 0.7}>
+              <title>{`${d} · ${n} 次访问`}</title>
+            </rect>
+            <text x={x + barW / 2} y={y - 7} textAnchor="middle" fontSize="11" fill="var(--text-muted)">
+              {n > 0 ? n : ''}
+            </text>
+            <text x={x + barW / 2} y={H - 12} textAnchor="middle" fontSize="11" fill="var(--text-subtle)">
+              {d.slice(5)}
+            </text>
+          </g>
+        )
+      })}
+    </svg>
   )
 }

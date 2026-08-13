@@ -96,7 +96,20 @@ export default function WeatherWidget() {
     )
   }
 
-  if (!data) return null
+  if (!data) {
+    // 接口失败时保留占位,避免整个组件消失
+    return (
+      <div className="card p-6" style={{ borderRadius: 'var(--radius-lg)' }}>
+        <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-heading)' }}>
+          <Cloud size={16} style={{ color: 'var(--accent-primary)' }} />
+          今日天气
+        </h3>
+        <p className="text-sm text-center py-4" style={{ color: 'var(--text-subtle)' }}>
+          天气服务暂不可用
+        </p>
+      </div>
+    )
+  }
 
   const CurrentIcon = getWeatherIcon(data.current.weather_code)
 

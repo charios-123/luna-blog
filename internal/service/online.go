@@ -135,23 +135,22 @@ func (s *VisitService) RecordVisitDuration(c *gin.Context) {
 	}
 
 	// 兼容不同的 Content-Type (支持 sendBeacon 发送的 text/plain 等)
-	contentType := c.GetHeader("Content-Type")
-	if contentType == "" || c.ContentType() == "text/plain" || c.ContentType() == "application/x-www-form-urlencoded" {
-		// 尝试直接绑定
-		if err := c.ShouldBind(&req); err != nil {
-			// 如果失败，尝试从原始 Body 解析
-			bodyBytes, _ := c.GetRawData()
-			if len(bodyBytes) > 0 {
-				// 尝试解析为 JSON
-				if err := json.Unmarshal(bodyBytes, &req); err != nil {
-					response.Error(c, 400, "参数错误: "+err.Error())
-					return
-				}
-			}
-		}
-	} else {
+	// 注意:不能先走 ShouldBind(表单绑定) - 它会把 JSON 字符串静默解析为空结构,
+	// 且会消费 body 导致后续 GetRawData 拿到空内容,兜底解析永远不生效
+	if c.ContentType() == "application/json" {
 		// 标准 JSON 请求
 		if err := c.ShouldBindJSON(&req); err != nil {
+			response.Error(c, 400, "参数错误: "+err.Error())
+			return
+		}
+	} else {
+		// text/plain 等格式:直接读原始 Body 按 JSON 解析
+		bodyBytes, _ := c.GetRawData()
+		if len(bodyBytes) == 0 {
+			response.Error(c, 400, "参数错误: 请求体为空")
+			return
+		}
+		if err := json.Unmarshal(bodyBytes, &req); err != nil {
 			response.Error(c, 400, "参数错误: "+err.Error())
 			return
 		}

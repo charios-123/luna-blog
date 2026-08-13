@@ -80,7 +80,7 @@ func registerRoutes(
 		blog.GET("/blogger", blogService.GetBloggerInfo) // 获取博主信息
 
 		// 文章 AI 问答
-		blog.POST("/articles/:id/ai/chat", aiService.ChatAboutArticle) // 基于文章内容 AI 问答
+		blog.POST("/articles/:id/ai/chat", aiService.ChatAboutArticleStream) // 基于文章内容 AI 问答(SSE 流式)
 
 		// 站点设置（公开访问，用于前端显示备案信息等）
 		blog.GET("/settings", settingsService.GetPublic) // 获取站点设置

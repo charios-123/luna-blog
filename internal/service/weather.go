@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -78,8 +80,14 @@ type WeatherService struct {
 	host   string
 	city   string
 
-	mu    sync.Mutex
-	cache *weatherCache
+	mu       sync.Mutex
+	geoCache map[string]*geoEntry     // 城市名/IP → 定位结果缓存(IP/城市名长期稳定)
+	cache    map[string]*weatherCache // locID → 天气数据缓存(按城市分桶,防串数据)
+}
+
+type geoEntry struct {
+	id   string
+	name string
 }
 
 type weatherCache struct {
@@ -93,7 +101,13 @@ func NewWeatherService(apiKey, host, city string) *WeatherService {
 		// 旧版账号默认走公共 Host
 		host = "https://devapi.qweather.com"
 	}
-	return &WeatherService{apiKey: apiKey, host: host, city: city}
+	return &WeatherService{
+		apiKey:   apiKey,
+		host:     host,
+		city:     city,
+		geoCache: make(map[string]*geoEntry),
+		cache:    make(map[string]*weatherCache),
+	}
 }
 
 // GetWeather 获取天气
@@ -106,7 +120,8 @@ func NewWeatherService(apiKey, host, city string) *WeatherService {
 // @Failure 500 {object} response.Response "天气服务未配置或查询失败"
 // @Router /blog/weather [get]
 func (s *WeatherService) GetWeather(c *gin.Context) {
-	data, err := s.fetchWeather()
+	// 传入访问者 IP 用于自动定位;本机/内网 IP 无法定位时自动回退默认城市
+	data, err := s.fetchWeather(c.ClientIP())
 	if err != nil {
 		response.ServerError(c, err.Error())
 		return
@@ -115,33 +130,24 @@ func (s *WeatherService) GetWeather(c *gin.Context) {
 }
 
 // fetchWeather 带缓存获取(30 分钟,控制免费版调用频率)
-func (s *WeatherService) fetchWeather() (*WeatherResponse, error) {
+// 缓存按城市(locID)分桶,避免不同城市的访问者串数据
+func (s *WeatherService) fetchWeather(ip string) (*WeatherResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.cache != nil && time.Now().Before(s.cache.expireAt) {
-		return s.cache.data, nil
-	}
-
-	data, err := s.fetchFromQWeather()
-	if err != nil {
-		return nil, err
-	}
-	s.cache = &weatherCache{data: data, expireAt: time.Now().Add(30 * time.Minute)}
-	return data, nil
-}
-
-func (s *WeatherService) fetchFromQWeather() (*WeatherResponse, error) {
 	if s.apiKey == "" {
 		return nil, fmt.Errorf("天气服务未配置 API Key,请设置环境变量 QWEATHER_API_KEY")
 	}
-	if s.city == "" {
-		return nil, fmt.Errorf("天气服务未配置城市,请设置 config.yaml 的 weather.city")
-	}
 
-	locID, locName, err := s.lookupCity()
+	// 1) 定位城市:公网 IP 自动定位,否则回退默认城市
+	locID, locName, err := s.resolveLocation(ip)
 	if err != nil {
 		return nil, err
+	}
+
+	// 2) 命中该城市缓存则直接返回
+	if c, ok := s.cache[locID]; ok && time.Now().Before(c.expireAt) {
+		return c.data, nil
 	}
 
 	now, err := s.getNow(locID)
@@ -154,25 +160,55 @@ func (s *WeatherService) fetchFromQWeather() (*WeatherResponse, error) {
 		return nil, err
 	}
 
-	return &WeatherResponse{
+	data := &WeatherResponse{
 		Location: locName,
 		Current:  *now,
 		Forecast: daily,
-	}, nil
+	}
+	s.cache[locID] = &weatherCache{data: data, expireAt: time.Now().Add(30 * time.Minute)}
+	return data, nil
 }
 
-// lookupCity 城市名转 location id
-func (s *WeatherService) lookupCity() (id, name string, err error) {
+// resolveLocation 定位城市:优先按公网 IP 反查,失败或无公网 IP 时回退默认城市
+func (s *WeatherService) resolveLocation(ip string) (id, name string, err error) {
+	if ip != "" && !isPrivateIP(ip) {
+		if id, name, gerr := s.lookupGeo(ip); gerr == nil {
+			return id, name, nil
+		}
+	}
+	if strings.TrimSpace(s.city) == "" {
+		return "", "", fmt.Errorf("天气服务未配置城市,请设置 config.yaml 的 weather.city")
+	}
+	return s.lookupGeo(s.city)
+}
+
+// lookupGeo 将城市名或 IP 解析为 location id(和风 geo 接口支持 IP 反查归属城市)
+// 结果按 location 字符串缓存,IP/城市名长期稳定,避免每次请求都打 geo 接口
+func (s *WeatherService) lookupGeo(loc string) (id, name string, err error) {
+	if e, ok := s.geoCache[loc]; ok {
+		return e.id, e.name, nil
+	}
 	var resp qwGeoResp
 	u := fmt.Sprintf("%s/geo/v2/city/lookup?location=%s&key=%s&number=1",
-		s.host, url.QueryEscape(s.city), s.apiKey)
+		s.host, url.QueryEscape(loc), s.apiKey)
 	if err = s.getJSON(u, &resp); err != nil {
 		return "", "", fmt.Errorf("城市查询失败: %w", err)
 	}
 	if resp.Code != "200" || len(resp.Location) == 0 {
-		return "", "", fmt.Errorf("未找到城市: %s", s.city)
+		return "", "", fmt.Errorf("未找到城市: %s", loc)
 	}
-	return resp.Location[0].ID, resp.Location[0].Name, nil
+	entry := &geoEntry{id: resp.Location[0].ID, name: resp.Location[0].Name}
+	s.geoCache[loc] = entry
+	return entry.id, entry.name, nil
+}
+
+// isPrivateIP 判断 IP 是否为本机/内网地址(此类地址无法用于 IP 定位,需回退默认城市)
+func isPrivateIP(ip string) bool {
+	parsed := net.ParseIP(ip)
+	if parsed == nil {
+		return true
+	}
+	return parsed.IsLoopback() || parsed.IsPrivate() || parsed.IsLinkLocalUnicast() || parsed.IsUnspecified()
 }
 
 // getNow 实时天气

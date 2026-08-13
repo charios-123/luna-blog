@@ -3,7 +3,7 @@ import { Bot, Send, Sparkles, Eraser, User as UserIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
-import { aiChatAboutArticle, type AIChatMessage } from '@/api/ai'
+import { aiChatAboutArticleStream, type AIChatMessage } from '@/api/ai'
 import Spinner from '@/components/ui/Spinner'
 
 const SUGGESTIONS = [
@@ -17,6 +17,7 @@ export default function AIChatWidget({ articleId }: { articleId: number | string
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   // 切换文章时清空对话
   useEffect(() => {
@@ -24,25 +25,70 @@ export default function AIChatWidget({ articleId }: { articleId: number | string
     setInput('')
   }, [articleId])
 
+  // 组件卸载时中断进行中的流式请求
+  useEffect(() => {
+    return () => abortRef.current?.abort()
+  }, [])
+
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, loading])
 
+  // 增量追加到最后一条 assistant 消息,实现打字机效果
+  const appendToLastAssistant = (text: string) => {
+    setMessages((prev) => {
+      const next = prev.slice()
+      const last = next[next.length - 1]
+      if (last && last.role === 'assistant') {
+        next[next.length - 1] = { ...last, content: last.content + text }
+      }
+      return next
+    })
+  }
+
   const send = async (text?: string) => {
     const content = (text ?? input).trim()
     if (!content || loading) return
-    const next: AIChatMessage[] = [...messages, { role: 'user', content }]
-    setMessages(next)
+    const history: AIChatMessage[] = [...messages, { role: 'user', content }]
+    // 先插入空白的 assistant 占位,流式内容逐步填入
+    setMessages([...history, { role: 'assistant', content: '' }])
     setInput('')
     setLoading(true)
+    abortRef.current = new AbortController()
+    let receivedAny = false
     try {
-      const res: any = await aiChatAboutArticle(articleId, next)
-      const reply = res?.reply || ''
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply || '抱歉，我没有获取到有效回答。' }])
+      await aiChatAboutArticleStream(
+        articleId,
+        history,
+        {
+          onContent: (chunk) => {
+            receivedAny = true
+            appendToLastAssistant(chunk)
+          },
+          onError: (msg) => {
+            receivedAny = true
+            appendToLastAssistant(msg)
+          },
+          onDone: () => {},
+        },
+        abortRef.current.signal,
+      )
     } catch (e: any) {
-      setMessages((prev) => [...prev, { role: 'assistant', content: e?.message || 'AI 服务暂时不可用，请稍后再试。' }])
+      if (e?.name !== 'AbortError') {
+        appendToLastAssistant(e?.message || 'AI 服务暂时不可用，请稍后再试。')
+      }
     } finally {
+      // 流结束后,若 assistant 仍为空则给出兜底提示
+      setMessages((prev) => {
+        const next = prev.slice()
+        const last = next[next.length - 1]
+        if (last && last.role === 'assistant' && !last.content && receivedAny === false) {
+          next[next.length - 1] = { ...last, content: '抱歉，我没有获取到有效回答。' }
+        }
+        return next
+      })
       setLoading(false)
+      abortRef.current = null
     }
   }
 
@@ -122,7 +168,7 @@ export default function AIChatWidget({ articleId }: { articleId: number | string
           </div>
         ))}
 
-        {loading && (
+        {loading && !messages[messages.length - 1]?.content && (
           <div className="flex gap-2">
             <span className="shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--color-leaf-500) 15%, transparent)', color: 'var(--color-leaf-600)' }}>
               <Bot size={13} />
