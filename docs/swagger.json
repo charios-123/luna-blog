@@ -490,120 +490,6 @@
                 }
             }
         },
-        "/articles/batch-update-cover": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "批量更新多篇文章的封面图",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "文章管理"
-                ],
-                "summary": "批量更新文章封面",
-                "parameters": [
-                    {
-                        "description": "封面更新信息",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.BatchUpdateCoverRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "更新成功",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/articles/batch-update-fields": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "批量更新多篇文章的指定字段（状态、分类、标签等）",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "文章管理"
-                ],
-                "summary": "批量更新文章字段",
-                "parameters": [
-                    {
-                        "description": "字段更新信息",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.BatchUpdateFieldsRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "更新成功",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/articles/export": {
             "post": {
                 "security": [
@@ -1323,63 +1209,19 @@
                 }
             }
         },
-        "/blog/articles/{id}/adjacent": {
-            "get": {
-                "description": "获取指定文章的上一篇和下一篇文章",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "博客前台"
-                ],
-                "summary": "获取相邻文章",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "文章ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "获取成功",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "文章不存在",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/blog/articles/{id}/ai/chat": {
             "post": {
-                "description": "基于当前文章内容回答读者提问",
+                "description": "基于当前文章内容回答读者提问,以 SSE 流式返回,支持前端打字机效果",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
-                    "application/json"
+                    "text/event-stream"
                 ],
                 "tags": [
                     "博客前台"
                 ],
-                "summary": "文章 AI 问答",
+                "summary": "文章 AI 问答（SSE 流式）",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1400,19 +1242,13 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "获取成功",
+                        "description": "SSE 事件流",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "type": "string"
                         }
                     },
                     "400": {
                         "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
                         "schema": {
                             "$ref": "#/definitions/response.Response"
                         }
@@ -2714,6 +2550,35 @@
                     },
                     "500": {
                         "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/weather": {
+            "get": {
+                "description": "获取当前天气和 3 天预报(和风天气)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "博客前台"
+                ],
+                "summary": "获取天气",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "天气服务未配置或查询失败",
                         "schema": {
                             "$ref": "#/definitions/response.Response"
                         }
@@ -4101,68 +3966,6 @@
                 "article_ids": {
                     "type": "array",
                     "minItems": 1,
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "dto.BatchUpdateCoverRequest": {
-            "type": "object",
-            "required": [
-                "article_ids",
-                "cover"
-            ],
-            "properties": {
-                "article_ids": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "cover": {
-                    "type": "string",
-                    "maxLength": 500
-                }
-            }
-        },
-        "dto.BatchUpdateFieldsRequest": {
-            "type": "object",
-            "required": [
-                "article_ids"
-            ],
-            "properties": {
-                "article_ids": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "category_id": {
-                    "description": "分类ID，可选",
-                    "type": "integer"
-                },
-                "chapter_id": {
-                    "description": "章节ID，可选",
-                    "type": "integer"
-                },
-                "cover": {
-                    "description": "封面，可选",
-                    "type": "string"
-                },
-                "created_at": {
-                    "description": "创建时间，可选",
-                    "type": "string"
-                },
-                "status": {
-                    "description": "状态，可选",
-                    "type": "integer"
-                },
-                "tag_ids": {
-                    "description": "标签ID列表，可选",
-                    "type": "array",
                     "items": {
                         "type": "integer"
                     }

@@ -9,14 +9,14 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/gomarkdown/markdown"
-	"github.com/gomarkdown/markdown/html"
-	"github.com/gomarkdown/markdown/parser"
 	"github.com/charios-123/luna-blog/internal/data"
 	"github.com/charios-123/luna-blog/internal/model/dto"
 	"github.com/charios-123/luna-blog/internal/model/po"
 	"github.com/charios-123/luna-blog/pkg/logger"
 	mdutils "github.com/charios-123/luna-blog/pkg/markdown"
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
 )
 
 // ArticleUseCase 文章业务用例接口
@@ -37,22 +37,14 @@ type ArticleUseCase interface {
 	UpdatePin(id uint, isPinned bool) error
 	// ListPinned 获取置顶文章
 	ListPinned() ([]dto.ArticleListItem, error)
-	// ReorderPinned 更新置顶文章排序
-	ReorderPinned(articleIDs []uint) error
 	// Search 搜索文章
 	Search(keyword string, page, limit int, sort string, categoryID, tagID uint) (*dto.PageResponse, error)
 	// Archive 获取归档文章（按月份分组）
 	Archive(page, limit int) (*dto.PageResponse, error)
 	// GetDefaultCategoryID 获取默认分类ID
 	GetDefaultCategoryID() (uint, error)
-	// BatchUpdateCover 批量更新封面
-	BatchUpdateCover(articleIDs []uint, cover string) error
-	// BatchUpdateFields 批量更新字段
-	BatchUpdateFields(req *dto.BatchUpdateFieldsRequest) error
 	// BatchDelete 批量删除
 	BatchDelete(articleIDs []uint) error
-	// GetAdjacentArticles 获取上一篇和下一篇文章
-	GetAdjacentArticles(id uint) (map[string]*dto.ArticleListItem, error)
 	// GetRelatedArticles 获取相关文章
 	GetRelatedArticles(id uint, limit int) ([]dto.ArticleListItem, error)
 	// ListPublished 获取已发布文章
@@ -362,41 +354,6 @@ func (uc *articleUseCase) ListPinned() ([]dto.ArticleListItem, error) {
 	return items, nil
 }
 
-// ReorderPinned 更新置顶文章排序
-func (uc *articleUseCase) ReorderPinned(articleIDs []uint) error {
-	articleIDs = uniqueUintIDs(articleIDs)
-	if len(articleIDs) == 0 {
-		return errors.New("文章ID列表不能为空")
-	}
-	if len(articleIDs) > maxPinnedArticles {
-		return errors.New("最多只能置顶5篇文章")
-	}
-
-	pinnedArticles, err := uc.data.ArticleRepo.ListPinned()
-	if err != nil {
-		return errors.New("查询置顶文章失败")
-	}
-	if len(articleIDs) != len(pinnedArticles) {
-		return errors.New("排序列表必须包含所有当前置顶文章")
-	}
-
-	pinnedIDs := make(map[uint]struct{}, len(pinnedArticles))
-	for _, article := range pinnedArticles {
-		pinnedIDs[article.ID] = struct{}{}
-	}
-	for _, articleID := range articleIDs {
-		if _, exists := pinnedIDs[articleID]; !exists {
-			return errors.New("排序列表包含非置顶文章")
-		}
-	}
-
-	if err := uc.data.ArticleRepo.ReorderPinned(articleIDs); err != nil {
-		return errors.New("更新置顶排序失败")
-	}
-
-	return nil
-}
-
 func nextPinSort(articles []*po.Article) int {
 	maxSort := 0
 	for _, article := range articles {
@@ -689,88 +646,6 @@ func (uc *articleUseCase) GetDefaultCategoryID() (uint, error) {
 	return categories[0].ID, nil
 }
 
-// BatchUpdateCover 批量更新封面
-func (uc *articleUseCase) BatchUpdateCover(articleIDs []uint, cover string) error {
-	if len(articleIDs) == 0 {
-		return errors.New("文章ID列表不能为空")
-	}
-
-	if err := uc.data.ArticleRepo.BatchUpdateCover(articleIDs, cover); err != nil {
-		return errors.New("批量更新封面失败: " + err.Error())
-	}
-
-	return nil
-}
-
-// BatchUpdateFields 批量更新字段
-func (uc *articleUseCase) BatchUpdateFields(req *dto.BatchUpdateFieldsRequest) error {
-	if len(req.ArticleIDs) == 0 {
-		return errors.New("文章ID列表不能为空")
-	}
-
-	originalArticles, err := uc.data.ArticleRepo.FindByIDs(req.ArticleIDs)
-	if err != nil {
-		return errors.New("获取文章信息失败: " + err.Error())
-	}
-	originalStatus := make(map[uint]int, len(originalArticles))
-	for _, article := range originalArticles {
-		originalStatus[article.ID] = article.Status
-	}
-
-	// 构建更新字段映射
-	updates := make(map[string]interface{})
-
-	if req.Cover != nil {
-		updates["cover"] = *req.Cover
-	}
-
-	if req.CategoryID != nil {
-		// 验证分类是否存在
-		if _, err := uc.data.CategoryRepo.FindByID(*req.CategoryID); err != nil {
-			return errors.New("分类不存在")
-		}
-		updates["category_id"] = *req.CategoryID
-	}
-
-	if req.ChapterID != nil {
-		updates["chapter_id"] = *req.ChapterID
-	}
-
-	if req.CreatedAt != nil {
-		updates["created_at"] = *req.CreatedAt
-	}
-
-	if req.Status != nil {
-		updates["status"] = *req.Status
-	}
-
-	// 更新基础字段
-	if len(updates) > 0 {
-		if err := uc.data.ArticleRepo.BatchUpdateFields(req.ArticleIDs, updates); err != nil {
-			return errors.New("批量更新字段失败: " + err.Error())
-		}
-	}
-
-	// 更新标签关联
-	if len(req.TagIDs) > 0 {
-		if err := uc.data.ArticleRepo.BatchAssociateTags(req.ArticleIDs, req.TagIDs); err != nil {
-			return errors.New("批量更新标签失败: " + err.Error())
-		}
-	}
-
-	if req.Status != nil && *req.Status == 1 {
-		publishedIDs := make([]uint, 0, len(req.ArticleIDs))
-		for _, articleID := range req.ArticleIDs {
-			if originalStatus[articleID] != 1 {
-				publishedIDs = append(publishedIDs, articleID)
-			}
-		}
-		uc.notifyPublishedArticlesByIDs(publishedIDs)
-	}
-
-	return nil
-}
-
 // BatchDelete 批量删除
 func (uc *articleUseCase) BatchDelete(articleIDs []uint) error {
 	if len(articleIDs) == 0 {
@@ -782,28 +657,6 @@ func (uc *articleUseCase) BatchDelete(articleIDs []uint) error {
 	}
 
 	return nil
-}
-
-// GetAdjacentArticles 获取上一篇和下一篇文章
-func (uc *articleUseCase) GetAdjacentArticles(id uint) (map[string]*dto.ArticleListItem, error) {
-	prevArticle, nextArticle, err := uc.data.ArticleRepo.GetAdjacentArticles(id)
-	if err != nil {
-		return nil, errors.New("获取相邻文章失败: " + err.Error())
-	}
-
-	result := make(map[string]*dto.ArticleListItem)
-
-	if prevArticle != nil {
-		prev := uc.convertToArticleListItem(prevArticle)
-		result["prev"] = &prev
-	}
-
-	if nextArticle != nil {
-		next := uc.convertToArticleListItem(nextArticle)
-		result["next"] = &next
-	}
-
-	return result, nil
 }
 
 // GetRelatedArticles 获取相关文章
@@ -936,18 +789,18 @@ func (uc *articleUseCase) CrawlAndSave(keyword string, categoryID uint) (int, er
 		}
 
 		article := &po.Article{
-		Title:           item.Title,
-		ContentMarkdown: contentMarkdown,
-		ContentHTML:     markdownToHTML(contentMarkdown),
-		Summary:         summary,
-		AuthorID:        authorID,
-		CategoryID:      categoryID,
-		Status:          1,
-		Source:          sourceTag,
-		SourceURL:       &item.URL,
-		OriginalAuthor:  item.Author,
-		CreatedAt:       item.PublishedAt,
-	}
+			Title:           item.Title,
+			ContentMarkdown: contentMarkdown,
+			ContentHTML:     markdownToHTML(contentMarkdown),
+			Summary:         summary,
+			AuthorID:        authorID,
+			CategoryID:      categoryID,
+			Status:          1,
+			Source:          sourceTag,
+			SourceURL:       &item.URL,
+			OriginalAuthor:  item.Author,
+			CreatedAt:       item.PublishedAt,
+		}
 
 		if err := uc.data.ArticleRepo.Create(article); err != nil {
 			if isDuplicateKeyErr(err) {

@@ -29,11 +29,6 @@ export function getArticleDetail(id: number | string) {
   return request.get(`/blog/articles/${id}`).then((r) => r.data)
 }
 
-/** 前台：上一篇 / 下一篇 */
-export function getAdjacentArticles(id: number | string) {
-  return request.get(`/blog/articles/${id}/adjacent`).then((r) => r.data)
-}
-
 /** 前台：相关文章推荐 */
 export function getRelatedArticles(id: number | string) {
   return request.get(`/blog/articles/${id}/related`).then((r) => r.data)

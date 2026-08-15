@@ -32,8 +32,6 @@ type ArticleRepo interface {
 	ListPinned() ([]*po.Article, error)
 	// UpdatePinned 更新文章置顶状态
 	UpdatePinned(id uint, isPinned bool, pinSort int, pinnedAt *time.Time) error
-	// ReorderPinned 更新置顶文章排序
-	ReorderPinned(articleIDs []uint) error
 	// IncrementViewCount 增加浏览量
 	IncrementViewCount(id uint) error
 	// IncrementLikeCount 增加点赞数
@@ -50,16 +48,8 @@ type ArticleRepo interface {
 	DecrementCommentCount(id uint) error
 	// AssociateTags 关联标签
 	AssociateTags(articleID uint, tagIDs []uint) error
-	// BatchUpdateCover 批量更新封面
-	BatchUpdateCover(articleIDs []uint, cover string) error
-	// BatchUpdateFields 批量更新字段
-	BatchUpdateFields(articleIDs []uint, updates map[string]interface{}) error
-	// BatchAssociateTags 批量关联标签
-	BatchAssociateTags(articleIDs []uint, tagIDs []uint) error
 	// BatchDelete 批量删除
 	BatchDelete(articleIDs []uint) error
-	// GetAdjacentArticles 获取上一篇和下一篇文章（基于章节排序）
-	GetAdjacentArticles(id uint) (*po.Article, *po.Article, error)
 	// GetRelatedArticles 获取相关文章
 	GetRelatedArticles(id uint, limit int) ([]*po.Article, error)
 	// ListPublished 获取已发布文章列表
@@ -255,20 +245,6 @@ func (r *articleRepo) UpdatePinned(id uint, isPinned bool, pinSort int, pinnedAt
 	}).Error
 }
 
-// ReorderPinned 更新置顶文章排序
-func (r *articleRepo) ReorderPinned(articleIDs []uint) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		for index, articleID := range articleIDs {
-			if err := tx.Model(&po.Article{}).
-				Where("id = ? AND is_pinned = ? AND status = ?", articleID, true, 1).
-				Update("pin_sort", index+1).Error; err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-}
-
 // IncrementViewCount 增加浏览量
 func (r *articleRepo) IncrementViewCount(id uint) error {
 	return r.db.Model(&po.Article{}).Where("id = ?", id).
@@ -324,44 +300,6 @@ func (r *articleRepo) AssociateTags(articleID uint, tagIDs []uint) error {
 	}
 
 	return r.db.Model(&article).Association("Tags").Replace(tags)
-}
-
-// BatchUpdateCover 批量更新封面
-func (r *articleRepo) BatchUpdateCover(articleIDs []uint, cover string) error {
-	return r.db.Model(&po.Article{}).
-		Where("id IN ?", articleIDs).
-		Update("cover", cover).Error
-}
-
-// BatchUpdateFields 批量更新字段
-func (r *articleRepo) BatchUpdateFields(articleIDs []uint, updates map[string]interface{}) error {
-	if statusValue, ok := updates["status"]; ok && statusValue != 1 {
-		updates["is_pinned"] = false
-		updates["pin_sort"] = 0
-		updates["pinned_at"] = nil
-	}
-	return r.db.Model(&po.Article{}).
-		Where("id IN ?", articleIDs).
-		Updates(updates).Error
-}
-
-// BatchAssociateTags 批量关联标签
-func (r *articleRepo) BatchAssociateTags(articleIDs []uint, tagIDs []uint) error {
-	var tags []po.Tag
-	if err := r.db.Find(&tags, tagIDs).Error; err != nil {
-		return err
-	}
-
-	for _, articleID := range articleIDs {
-		var article po.Article
-		if err := r.db.First(&article, articleID).Error; err != nil {
-			continue
-		}
-		if err := r.db.Model(&article).Association("Tags").Replace(tags); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // BatchDelete 批量删除
@@ -471,136 +409,4 @@ func (r *articleRepo) ListPublished(limit int) ([]*po.Article, error) {
 	}
 
 	return articles, nil
-}
-
-// GetAdjacentArticles 获取上一篇和下一篇文章（基于章节排序）
-func (r *articleRepo) GetAdjacentArticles(id uint) (*po.Article, *po.Article, error) {
-	// 获取当前文章
-	var currentArticle po.Article
-	if err := r.db.Preload("Chapter").First(&currentArticle, id).Error; err != nil {
-		return nil, nil, err
-	}
-
-	// 如果文章没有关联章节，则按ID顺序获取相邻文章
-	if currentArticle.ChapterID == nil {
-		return r.getAdjacentArticlesByID(id)
-	}
-
-	// 获取当前章节信息
-	var currentChapter po.Chapter
-	if err := r.db.First(&currentChapter, *currentArticle.ChapterID).Error; err != nil {
-		return nil, nil, err
-	}
-
-	// 获取同一标签下的所有章节（包括父章节和子章节）
-	var allChapters []po.Chapter
-	if err := r.db.Where("tag_id = ?", currentChapter.TagID).
-		Order("parent_id ASC, sort ASC, id ASC").
-		Find(&allChapters).Error; err != nil {
-		return nil, nil, err
-	}
-
-	// 获取所有章节下的文章（只获取已发布的）
-	chapterIDs := make([]uint, 0, len(allChapters))
-	for _, chapter := range allChapters {
-		chapterIDs = append(chapterIDs, chapter.ID)
-	}
-
-	var allArticles []po.Article
-	if err := r.db.Where("chapter_id IN ? AND status = ?", chapterIDs, 1).
-		Preload("Author").Preload("Category").Preload("Tags").Preload("Chapter").
-		Find(&allArticles).Error; err != nil {
-		return nil, nil, err
-	}
-
-	// 按照章节顺序和创建时间排序文章
-	sortedArticles := r.sortArticlesByChapter(allArticles, allChapters)
-
-	// 找到当前文章的位置
-	currentIndex := -1
-	for i, article := range sortedArticles {
-		if article.ID == id {
-			currentIndex = i
-			break
-		}
-	}
-
-	if currentIndex == -1 {
-		return nil, nil, nil
-	}
-
-	var prevArticle, nextArticle *po.Article
-
-	// 获取上一篇
-	if currentIndex > 0 {
-		prevArticle = &sortedArticles[currentIndex-1]
-	}
-
-	// 获取下一篇
-	if currentIndex < len(sortedArticles)-1 {
-		nextArticle = &sortedArticles[currentIndex+1]
-	}
-
-	return prevArticle, nextArticle, nil
-}
-
-// getAdjacentArticlesByID 按ID顺序获取相邻文章（用于没有章节的文章）
-func (r *articleRepo) getAdjacentArticlesByID(id uint) (*po.Article, *po.Article, error) {
-	var prevArticle, nextArticle po.Article
-
-	// 获取上一篇（ID小于当前文章ID，按ID降序，取第一条）
-	err := r.db.Where("id < ? AND status = ?", id, 1).
-		Order("id DESC").
-		Limit(1).
-		Preload("Author").Preload("Category").Preload("Tags").Preload("Chapter").
-		First(&prevArticle).Error
-	var prev *po.Article
-	if err == nil {
-		prev = &prevArticle
-	}
-
-	// 获取下一篇（ID大于当前文章ID，按ID升序，取第一条）
-	err = r.db.Where("id > ? AND status = ?", id, 1).
-		Order("id ASC").
-		Limit(1).
-		Preload("Author").Preload("Category").Preload("Tags").Preload("Chapter").
-		First(&nextArticle).Error
-	var next *po.Article
-	if err == nil {
-		next = &nextArticle
-	}
-
-	return prev, next, nil
-}
-
-// sortArticlesByChapter 按章节顺序排序文章
-func (r *articleRepo) sortArticlesByChapter(articles []po.Article, chapters []po.Chapter) []po.Article {
-	// 创建章节ID到排序值的映射
-	chapterSortMap := make(map[uint]int)
-	for i, chapter := range chapters {
-		chapterSortMap[chapter.ID] = i
-	}
-
-	// 按照章节顺序和创建时间排序
-	sorted := make([]po.Article, len(articles))
-	copy(sorted, articles)
-
-	for i := 0; i < len(sorted); i++ {
-		for j := i + 1; j < len(sorted); j++ {
-			iChapterSort := chapterSortMap[*sorted[i].ChapterID]
-			jChapterSort := chapterSortMap[*sorted[j].ChapterID]
-
-			// 先按章节排序
-			if iChapterSort > jChapterSort {
-				sorted[i], sorted[j] = sorted[j], sorted[i]
-			} else if iChapterSort == jChapterSort {
-				// 同一章节内按创建时间排序
-				if sorted[i].CreatedAt.After(sorted[j].CreatedAt) {
-					sorted[i], sorted[j] = sorted[j], sorted[i]
-				}
-			}
-		}
-	}
-
-	return sorted
 }

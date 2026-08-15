@@ -23,8 +23,6 @@ type BlogUseCase interface {
 
 	// GetArticleDetail 获取文章详情（包含用户点赞收藏状态）
 	GetArticleDetail(articleID, userID uint) (*dto.ArticleDetailResponse, error)
-	// GetAdjacentArticles 获取文章的上一篇和下一篇
-	GetAdjacentArticles(articleID uint) (*dto.AdjacentArticlesResponse, error)
 
 	// LikeArticle 点赞文章
 	LikeArticle(userID, articleID uint) error
@@ -904,54 +902,4 @@ func (uc *blogUseCase) GetBloggerInfo() (*dto.BloggerInfoResponse, error) {
 		CommentCount: commentCount,
 		LikeCount:    likeCount,
 	}, nil
-}
-
-// GetAdjacentArticles 获取文章的上一篇和下一篇
-func (uc *blogUseCase) GetAdjacentArticles(articleID uint) (*dto.AdjacentArticlesResponse, error) {
-	// 获取当前文章
-	currentArticle, err := uc.data.ArticleRepo.FindByIDWithRelations(articleID)
-	if err != nil {
-		return nil, errors.New("文章不存在")
-	}
-
-	// 只能查看已发布的文章
-	if currentArticle.Status != 1 {
-		return nil, errors.New("文章不存在或未发布")
-	}
-
-	response := &dto.AdjacentArticlesResponse{}
-
-	// 查询上一篇文章（ID小于当前文章ID，按ID降序，取第一条）
-	var prevArticle po.Article
-	err = uc.data.GetDB().Model(&po.Article{}).
-		Where("id < ? AND status = ?", articleID, 1).
-		Order("id DESC").
-		Limit(1).
-		Select("id, title").
-		First(&prevArticle).Error
-
-	if err == nil {
-		response.Prev = &dto.AdjacentArticleSummary{
-			ID:    prevArticle.ID,
-			Title: prevArticle.Title,
-		}
-	}
-
-	// 查询下一篇文章（ID大于当前文章ID，按ID升序，取第一条）
-	var nextArticle po.Article
-	err = uc.data.GetDB().Model(&po.Article{}).
-		Where("id > ? AND status = ?", articleID, 1).
-		Order("id ASC").
-		Limit(1).
-		Select("id, title").
-		First(&nextArticle).Error
-
-	if err == nil {
-		response.Next = &dto.AdjacentArticleSummary{
-			ID:    nextArticle.ID,
-			Title: nextArticle.Title,
-		}
-	}
-
-	return response, nil
 }

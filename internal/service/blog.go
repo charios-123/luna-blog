@@ -128,33 +128,6 @@ func (s *BlogService) GetArticleDetail(c *gin.Context) {
 	response.Success(c, resp)
 }
 
-// GetAdjacentArticles 获取文章的上一篇和下一篇
-// @Summary 获取相邻文章
-// @Description 获取指定文章的上一篇和下一篇文章
-// @Tags 博客前台
-// @Accept json
-// @Produce json
-// @Param id path int true "文章ID"
-// @Success 200 {object} response.Response "获取成功"
-// @Failure 400 {object} response.Response "请求参数错误"
-// @Failure 404 {object} response.Response "文章不存在"
-// @Router /blog/articles/{id}/adjacent [get]
-func (s *BlogService) GetAdjacentArticles(c *gin.Context) {
-	articleID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		response.BadRequest(c, "无效的文章ID")
-		return
-	}
-
-	resp, err := s.blogUseCase.GetAdjacentArticles(uint(articleID))
-	if err != nil {
-		response.NotFound(c, err.Error())
-		return
-	}
-
-	response.Success(c, resp)
-}
-
 // LikeArticle 点赞文章
 // @Summary 点赞文章
 // @Description 用户点赞文章

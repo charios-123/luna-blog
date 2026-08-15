@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/charios-123/luna-blog/config"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Claims JWT声明

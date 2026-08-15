@@ -18,7 +18,7 @@ import ArticleCard from '@/components/ArticleCard'
 import AIChatWidget from '@/components/widgets/AIChatWidget'
 import {
   Eye, Heart, Bookmark, MessageCircle, Share2, Calendar, UserCircle2,
-  ChevronLeft, ChevronRight, ThumbsUp, Reply, Send, Trash2, Pin,
+  ThumbsUp, Reply, Send, Trash2, Pin,
   FolderTree, Hash, Edit3, Clock4, FileText,
 } from 'lucide-react'
 import { formatDate, timeAgo } from '@/lib/utils'
@@ -522,32 +522,6 @@ export default function ArticleDetail() {
               )}
             </footer>
           </article>
-
-          {/* 上下篇 */}
-          {(article.prev || article.next) && (
-            <nav className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {article.prev ? (
-                <Link to={`/articles/${article.prev.id}`} className="card card-hover p-4 md:p-5 group" style={{ borderRadius: 'var(--radius-lg)' }}>
-                  <div className="text-xs mb-1 inline-flex items-center gap-1" style={{ color: 'var(--text-subtle)' }}>
-                    <ChevronLeft size={14} /> 上一篇
-                  </div>
-                  <div className="font-medium line-clamp-2 group-hover:text-[var(--accent-primary)] transition-colors" style={{ color: 'var(--text-heading)' }}>
-                    {article.prev.title}
-                  </div>
-                </Link>
-              ) : <div />}
-              {article.next ? (
-                <Link to={`/articles/${article.next.id}`} className="card card-hover p-4 md:p-5 group text-right" style={{ borderRadius: 'var(--radius-lg)' }}>
-                  <div className="text-xs mb-1 inline-flex items-center gap-1" style={{ color: 'var(--text-subtle)' }}>
-                    下一篇 <ChevronRight size={14} />
-                  </div>
-                  <div className="font-medium line-clamp-2 group-hover:text-[var(--accent-primary)] transition-colors" style={{ color: 'var(--text-heading)' }}>
-                    {article.next.title}
-                  </div>
-                </Link>
-              ) : <div />}
-            </nav>
-          )}
 
           {/* 相关推荐 */}
           {article.related?.length > 0 && (

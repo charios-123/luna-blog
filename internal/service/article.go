@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/charios-123/luna-blog/internal/biz"
 	"github.com/charios-123/luna-blog/internal/model/dto"
 	"github.com/charios-123/luna-blog/pkg/response"
+	"github.com/gin-gonic/gin"
 )
 
 // ArticleService 文章服务
@@ -279,22 +279,6 @@ func (s *ArticleService) ListPinned(c *gin.Context) {
 	response.Success(c, items)
 }
 
-// ReorderPinned 更新置顶文章排序
-func (s *ArticleService) ReorderPinned(c *gin.Context) {
-	var req dto.ReorderPinnedArticlesRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
-	if err := s.articleUseCase.ReorderPinned(req.ArticleIDs); err != nil {
-		response.ServerError(c, err.Error())
-		return
-	}
-
-	response.Success(c, nil)
-}
-
 // Search 搜索文章
 // @Summary 搜索文章
 // @Description 根据关键词搜索文章
@@ -485,66 +469,6 @@ func generateSummary(content string, maxLen int) string {
 	return content
 }
 
-// BatchUpdateCover 批量更新封面
-// @Summary 批量更新文章封面
-// @Description 批量更新多篇文章的封面图
-// @Tags 文章管理
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body dto.BatchUpdateCoverRequest true "封面更新信息"
-// @Success 200 {object} response.Response "更新成功"
-// @Failure 400 {object} response.Response "请求参数错误"
-// @Failure 401 {object} response.Response "未授权"
-// @Failure 500 {object} response.Response "服务器错误"
-// @Router /articles/batch-update-cover [post]
-func (s *ArticleService) BatchUpdateCover(c *gin.Context) {
-	var req dto.BatchUpdateCoverRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
-	if err := s.articleUseCase.BatchUpdateCover(req.ArticleIDs, req.Cover); err != nil {
-		response.ServerError(c, err.Error())
-		return
-	}
-
-	response.Success(c, gin.H{
-		"updated": len(req.ArticleIDs),
-	})
-}
-
-// BatchUpdateFields 批量更新字段
-// @Summary 批量更新文章字段
-// @Description 批量更新多篇文章的指定字段（状态、分类、标签等）
-// @Tags 文章管理
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body dto.BatchUpdateFieldsRequest true "字段更新信息"
-// @Success 200 {object} response.Response "更新成功"
-// @Failure 400 {object} response.Response "请求参数错误"
-// @Failure 401 {object} response.Response "未授权"
-// @Failure 500 {object} response.Response "服务器错误"
-// @Router /articles/batch-update-fields [post]
-func (s *ArticleService) BatchUpdateFields(c *gin.Context) {
-	var req dto.BatchUpdateFieldsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
-	if err := s.articleUseCase.BatchUpdateFields(&req); err != nil {
-		response.ServerError(c, err.Error())
-		return
-	}
-
-	response.Success(c, gin.H{
-		"updated": len(req.ArticleIDs),
-	})
-}
-
 // BatchDelete 批量删除
 // @Summary 批量删除文章
 // @Description 批量删除多篇文章
@@ -573,33 +497,6 @@ func (s *ArticleService) BatchDelete(c *gin.Context) {
 	response.Success(c, gin.H{
 		"deleted": len(req.ArticleIDs),
 	})
-}
-
-// GetAdjacentArticles 获取上一篇和下一篇文章
-// @Summary 获取上一篇和下一篇文章
-// @Description 根据章节顺序获取当前文章的上一篇和下一篇
-// @Tags 博客前台
-// @Accept json
-// @Produce json
-// @Param id path int true "文章ID"
-// @Success 200 {object} response.Response "获取成功"
-// @Failure 400 {object} response.Response "请求参数错误"
-// @Failure 500 {object} response.Response "服务器错误"
-// @Router /blog/articles/{id}/adjacent [get]
-func (s *ArticleService) GetAdjacentArticles(c *gin.Context) {
-	var req dto.IDRequest
-	if err := c.ShouldBindUri(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
-	result, err := s.articleUseCase.GetAdjacentArticles(req.ID)
-	if err != nil {
-		response.ServerError(c, err.Error())
-		return
-	}
-
-	response.Success(c, result)
 }
 
 // GetRelatedArticles 获取相关文章

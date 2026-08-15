@@ -1,0 +1,29 @@
+# Luna Blog 后端 systemd 服务
+# 用法：上传到服务器后执行
+#   sudo cp luna-blog.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now luna-blog
+
+[Unit]
+Description=Luna Blog Backend API
+After=network.target mysqld.service
+
+[Service]
+Type=simple
+# 工作目录必须与二进制、config.yaml 同级（程序按相对路径读 config.yaml）
+WorkingDirectory=/www/wwwroot/luna-blog
+ExecStart=/www/wwwroot/luna-blog/blog
+Restart=always
+RestartSec=3
+
+# 敏感配置读取 /etc/luna-blog.env（该文件权限须为 600，仅 root 可读）
+# 创建方法：
+#   sudo tee /etc/luna-blog.env <<'EOF'
+#   AI_API_KEY=sk-你的DeepSeekKey
+#   QWEATHER_API_KEY=你的和风天气Key
+#   EOF
+#   sudo chmod 600 /etc/luna-blog.env
+EnvironmentFile=/etc/luna-blog.env
+
+[Install]
+WantedBy=multi-user.target

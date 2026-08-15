@@ -1,17 +1,17 @@
 server:
-  port: 8888
-  mode: debug # debug, release, test
+  port: 8890
+  mode: release # debug, release, test
 
 database:
   host: 127.0.0.1
   port: 3306
-  user: root
-  password: 123456
-  dbname: leaf_admin
+  user: luna_blog
+  password: zswbrbaFirWCJXTW
+  dbname: luna_blog
   charset: utf8mb4
 
 jwt:
-  secret: Mv+j9dPbgQH3kHrCuxzojYP7QdVBz63K9pJTlBDkbN8CHlfTmi8saYkrXRA5wb8Z
+  secret: olsNI/ke8Z4XujzC/4TWeQGAWBifoJs7MiVW/DEZF9o=
   expire: 24 # hours
 
 oss:
@@ -44,7 +44,7 @@ weather:
   city: "新乡" # 城市名(中文或拼音),如 广州 / guangzhou
 
 log:
-  level: debug # debug, info, warn, error
+  level: info # debug, info, warn, error
   format: text # json, text
   output: stdout # stdout, file
   file_path: logs/app.log

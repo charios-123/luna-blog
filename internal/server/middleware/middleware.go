@@ -3,9 +3,9 @@ package middleware
 import (
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/charios-123/luna-blog/pkg/jwt"
 	"github.com/charios-123/luna-blog/pkg/response"
+	"github.com/gin-gonic/gin"
 )
 
 // JWTAuth JWT认证中间件

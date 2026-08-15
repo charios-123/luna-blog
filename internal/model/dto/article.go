@@ -40,28 +40,6 @@ type UpdateArticlePinRequest struct {
 	IsPinned bool `json:"is_pinned"`
 }
 
-// ReorderPinnedArticlesRequest 置顶文章排序请求
-type ReorderPinnedArticlesRequest struct {
-	ArticleIDs []uint `json:"article_ids" binding:"required,min=1"`
-}
-
-// BatchUpdateCoverRequest 批量更新封面请求
-type BatchUpdateCoverRequest struct {
-	ArticleIDs []uint `json:"article_ids" binding:"required,min=1"`
-	Cover      string `json:"cover" binding:"required,max=500"`
-}
-
-// BatchUpdateFieldsRequest 批量更新字段请求
-type BatchUpdateFieldsRequest struct {
-	ArticleIDs []uint     `json:"article_ids" binding:"required,min=1"`
-	Cover      *string    `json:"cover"`       // 封面，可选
-	CategoryID *uint      `json:"category_id"` // 分类ID，可选
-	ChapterID  *uint      `json:"chapter_id"`  // 章节ID，可选
-	Status     *int       `json:"status"`      // 状态，可选
-	TagIDs     []uint     `json:"tag_ids"`     // 标签ID列表，可选
-	CreatedAt  *time.Time `json:"created_at"`  // 创建时间，可选
-}
-
 // BatchDeleteRequest 批量删除请求
 type BatchDeleteRequest struct {
 	ArticleIDs []uint `json:"article_ids" binding:"required,min=1"`
