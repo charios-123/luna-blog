@@ -7,7 +7,6 @@ import (
 // Data 数据层结构，包含所有 Repository
 type Data struct {
 	db              *gorm.DB
-	AdminRepo       AdminRepo
 	UserRepo        UserRepo
 	ArticleRepo     ArticleRepo
 	CategoryRepo    CategoryRepo
@@ -25,7 +24,6 @@ type Data struct {
 func NewData(db *gorm.DB) (*Data, error) {
 	return &Data{
 		db:              db,
-		AdminRepo:       NewAdminRepo(db),
 		UserRepo:        NewUserRepo(db),
 		ArticleRepo:     NewArticleRepo(db),
 		CategoryRepo:    NewCategoryRepo(db),

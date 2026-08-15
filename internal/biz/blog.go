@@ -766,7 +766,7 @@ func (uc *blogUseCase) DeleteComment(commentID, userID uint) error {
 	return nil
 }
 
-// GetUserStats 获取用户统计信息
+// GetUserStats 获取用户统计信息 
 func (uc *blogUseCase) GetUserStats(userID uint) (*dto.UserStatsResponse, error) {
 	// 获取点赞数
 	likesCount, err := uc.data.LikeRepo.CountByUser(userID)

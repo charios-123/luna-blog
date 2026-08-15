@@ -6,24 +6,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Admin 管理员模型
-type Admin struct {
-	ID        uint           `gorm:"primarykey" json:"id"`
-	Username  string         `gorm:"size:50;uniqueIndex;not null" json:"username"`
-	Password  string         `gorm:"size:255;not null" json:"-"`
-	Email     string         `gorm:"size:100" json:"email"`
-	Nickname  string         `gorm:"size:50" json:"nickname"`
-	Avatar    string         `gorm:"size:500" json:"avatar"`
-	Bio       string         `gorm:"size:500" json:"bio"`
-	Skills    string         `gorm:"type:text" json:"skills"`   // 技术栈，逗号分隔
-	Contacts  string         `gorm:"type:text" json:"contacts"` // 联系方式，JSON格式
-	Role      string         `gorm:"size:20;default:admin" json:"role"`
-	Status    int            `gorm:"default:1" json:"status"` // 1: active, 0: inactive
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-}
-
 // User 前台用户模型
 type User struct {
 	ID        uint           `gorm:"primarykey" json:"id"`
@@ -194,7 +176,6 @@ type Setting struct {
 // AutoMigrate 自动迁移数据库表
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(
-		&Admin{},
 		&User{},
 		&Article{},
 		&Category{},

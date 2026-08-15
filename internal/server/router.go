@@ -11,7 +11,6 @@ func registerRoutes(
 	r *gin.Engine,
 	authService *service.AuthService,
 	articleService *service.ArticleService,
-	userService *service.UserService,
 	categoryService *service.CategoryService,
 	tagService *service.TagService,
 	commentService *service.CommentService,
@@ -137,16 +136,6 @@ func registerRoutes(
 	api := r.Group("/")
 	api.Use(middleware.JWTAuth())
 	{
-		// 用户管理
-		users := api.Group("/users")
-		{
-			users.GET("", userService.List)
-			users.GET("/:id", userService.GetByID)
-			users.POST("", userService.Create)
-			users.PUT("/:id", userService.Update)
-			users.DELETE("/:id", userService.Delete)
-		}
-
 		// 文章管理
 		articles := api.Group("/articles")
 		{
@@ -208,10 +197,6 @@ func registerRoutes(
 		analytics := api.Group("/analytics")
 		{
 			analytics.GET("/visits/7days", analyticsService.Get7DaysVisits)
-			analytics.GET("/online/users", analyticsService.GetOnlineUsers)
-			analytics.GET("/online/stats", analyticsService.GetOnlineStats)
-			analytics.GET("/visits/realtime", analyticsService.GetRealtimeVisits)
-			analytics.GET("/pages/top", analyticsService.GetTopPages)
 		}
 
 		// 设置

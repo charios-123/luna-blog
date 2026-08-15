@@ -123,10 +123,6 @@ func (uc *articleUseCase) Create(req *dto.CreateArticleRequest, authorID uint) (
 		}
 	}
 
-	if article.Status == 1 {
-		uc.notifyPublishedArticle(article.ID)
-	}
-
 	// 重新查询文章（包含关联数据）
 	return uc.GetByID(article.ID)
 }
@@ -138,7 +134,6 @@ func (uc *articleUseCase) Update(id uint, req *dto.UpdateArticleRequest) (*dto.A
 	if err != nil {
 		return nil, errors.New("文章不存在")
 	}
-	previousStatus := article.Status
 
 	// 更新字段
 	if req.Title != "" {
@@ -197,10 +192,6 @@ func (uc *articleUseCase) Update(id uint, req *dto.UpdateArticleRequest) (*dto.A
 		if err := uc.data.ArticleRepo.AssociateTags(article.ID, req.TagIDs); err != nil {
 			return nil, errors.New("更新标签失败")
 		}
-	}
-
-	if previousStatus != 1 && article.Status == 1 {
-		uc.notifyPublishedArticle(article.ID)
 	}
 
 	// 重新查询文章
@@ -291,17 +282,12 @@ func (uc *articleUseCase) List(req *dto.ArticleListRequest) (*dto.PageResponse, 
 // UpdateStatus 更新文章状态
 func (uc *articleUseCase) UpdateStatus(id uint, status int) error {
 	// 检查文章是否存在
-	article, err := uc.data.ArticleRepo.FindByID(id)
-	if err != nil {
+	if _, err := uc.data.ArticleRepo.FindByID(id); err != nil {
 		return errors.New("文章不存在")
 	}
 
 	if err := uc.data.ArticleRepo.UpdateStatus(id, status); err != nil {
 		return errors.New("更新状态失败")
-	}
-
-	if article.Status != 1 && status == 1 {
-		uc.notifyPublishedArticle(id)
 	}
 
 	return nil

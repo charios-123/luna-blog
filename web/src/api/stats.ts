@@ -18,11 +18,3 @@ export function getAdminStats() {
 export function get7DaysVisits() {
   return request.get('/analytics/visits/7days').then((r) => r.data)
 }
-/** 管理端：在线用户 */
-export function getOnlineUsers() {
-  return request.get('/analytics/online/users').then((r) => r.data)
-}
-/** 管理端：实时访问 */
-export function getRealtimeVisits() {
-  return request.get('/analytics/visits/realtime').then((r) => r.data)
-}

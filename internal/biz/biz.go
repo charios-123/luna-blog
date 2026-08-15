@@ -8,7 +8,6 @@ import (
 type Biz struct {
 	AuthUseCase     AuthUseCase
 	ArticleUseCase  ArticleUseCase
-	UserUseCase     UserUseCase
 	CategoryUseCase CategoryUseCase
 	TagUseCase      TagUseCase
 	CommentUseCase  CommentUseCase
@@ -21,7 +20,6 @@ func NewBiz(d *data.Data) *Biz {
 	return &Biz{
 		AuthUseCase:     NewAuthUseCase(d),
 		ArticleUseCase:  NewArticleUseCase(d),
-		UserUseCase:     NewUserUseCase(d),
 		CategoryUseCase: NewCategoryUseCase(d),
 		TagUseCase:      NewTagUseCase(d),
 		CommentUseCase:  NewCommentUseCase(d),
