@@ -15,12 +15,12 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8888',
+        target: 'http://localhost:8890',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ''),
       },
       '/uploads': {
-        target: 'http://localhost:8888',
+        target: 'http://localhost:8890',
         changeOrigin: true,
       },
     },

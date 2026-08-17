@@ -1,6 +1,6 @@
 # Luna Blog
 
-一个基于 Go + React 的全栈博客系统，支持文章发布、分类归档、评论留言、AI 问答、阅读统计等功能。
+一个基于 Go + React 的全栈博客系统，支持文章发布、分类归档、章节教程、评论留言、AI 问答、天气查询、阅读统计等功能。
 
 - **后端**：Go + Gin，参考 Kratos 分层设计（server / service / biz / data / model）
 - **前端**：React 19 + Vite + TypeScript + Tailwind CSS，位于 `web/` 目录
@@ -33,8 +33,8 @@
 - 数据库：MySQL 8.0
 - 缓存/在线状态：Redis 7
 - 认证：JWT（bcrypt 密码加密）
-- 配置管理：Viper
-- 依赖注入：Wire
+- 配置管理：Viper（支持环境变量覆盖）
+- 依赖注入：手动构造函数注入（server → service → biz → data 逐层组装）
 - API 文档：Swagger（swaggo）
 
 **前端**（`web/`）
@@ -70,9 +70,8 @@
 ```
 ├── main.go                 # 后端入口（含 Swagger 注释）
 ├── cmd/
-│   ├── app.go              # 应用组装：依赖注入、启动 HTTP 服务、定时任务
-│   ├── injector.go         # Wire 注入器
-│   ├── wire.go             # Wire 依赖声明
+│   ├── app.go              # 应用组装：依赖注入、启动 HTTP 服务、CSDN 抓取
+│   ├── injector.go         # InitApp：手动依赖注入装配
 │   └── fix_*/ recrawl_* / restore_*   # 一次性运维工具（见「运维工具」）
 ├── config/
 │   └── config.go           # Viper 配置加载 + 数据库/Redis 初始化
@@ -84,7 +83,7 @@
 │   └── model/
 │       ├── po/             # 数据库模型（Article、User、Comment 等）
 │       └── dto/            # 请求/响应传输对象
-├── pkg/                    # 通用工具：jwt、logger、markdown、redis、response 等
+├── pkg/                    # 通用工具：jwt、logger、markdown、oss、redis、response 等
 ├── docs/                   # Swagger 生成产物 + 历史文档
 ├── web/                    # 前端（React 单页应用）
 │   ├── src/
@@ -95,7 +94,7 @@
 │   │   ├── hooks/          # 自定义 Hooks（heartbeat、theme、seo 等）
 │   │   ├── router/         # 路由配置
 │   │   └── config/         # 站点配置
-│   └── vite.config.ts      # Vite 配置（含后端代理 http://localhost:8888）
+│   └── vite.config.ts      # Vite 配置（含后端代理 http://localhost:8890）
 ├── tools/
 │   └── reset_db.go         # 数据库重置工具
 ├── config.yaml             # 后端配置
@@ -115,11 +114,15 @@
 
 ```bash
 # 1. 修改 config.yaml 中的数据库连接等配置
+#    若本地数据库与 config.yaml 不同（例如本地库名是 leaf_admin），
+#    无需改动 config.yaml，用环境变量覆盖即可（线上部署照旧读 config.yaml）：
+#    $env:DB_NAME = "leaf_admin"
 
-# 2. 启动后端（AI 功能需注入环境变量）
+# 2. 启动后端（AI、天气功能按需注入环境变量）
 $env:AI_API_KEY = "你的 DeepSeek API Key"
+$env:QWEATHER_API_KEY = "你的和风天气 Key"   # 可选，不注入则天气功能不可用
 go run main.go
-# 服务启动于 http://localhost:8888
+# 服务启动于 http://localhost:8890
 ```
 
 ### 前端启动
@@ -131,7 +134,7 @@ npm run dev
 # 访问 http://localhost:5173
 ```
 
-前端开发代理已配置，`/blog/*`、`/api/*` 请求自动转发到后端 8888 端口。
+前端开发代理已配置，`/api/*` 请求自动转发到后端 8890 端口。
 
 ### 构建产物
 
@@ -149,23 +152,31 @@ cd web && npm run build
 
 | 配置项 | 说明 |
 |--------|------|
+| `server` | 服务端口、运行模式 |
 | `database` | MySQL 连接（host、port、user、password、dbname）|
 | `redis` | Redis 连接地址 |
-| `server` | 服务端口、运行模式 |
+| `jwt` | JWT 签名密钥、过期时间 |
+| `oss` | 阿里云 OSS（endpoint、access_key、bucket、base_url）|
 | `ai` | AI 服务商（DeepSeek）、base_url、model |
+| `weather` | 和风天气 host、城市（key 走环境变量）|
+| `log` | 日志级别、格式、输出、轮转 |
 
-**安全提示**：AI 的 API Key 不写入配置文件，通过环境变量 `AI_API_KEY` 注入，读取时若环境变量存在则覆盖配置项。
+**安全提示**：敏感密钥不写入配置文件，通过环境变量注入，读取时若环境变量存在则覆盖配置项：
+
+- `AI_API_KEY`：DeepSeek API Key
+- `QWEATHER_API_KEY`：和风天气 API Key
+- 数据库连接（`DB_HOST`、`DB_PORT`、`DB_USER`、`DB_PASSWORD`、`DB_NAME`）也支持环境变量覆盖
 
 ## API 文档
 
 启动后端后访问 Swagger 在线文档：
 
-- Swagger UI：http://localhost:8888/swagger/index.html
+- Swagger UI：http://localhost:8890/swagger/index.html
 
 更新文档（修改接口注释后重新生成）：
 
 ```bash
-swag init -g cmd/app.go -o docs
+swag init -o docs
 ```
 
 ## 运维工具
@@ -184,11 +195,16 @@ swag init -g cmd/app.go -o docs
 
 ## 主要功能
 
-- 文章管理：发布/编辑/删除、Markdown 渲染、置顶、归档、搜索
+- 文章管理：发布/编辑/删除、Markdown 渲染、置顶、归档、搜索、Markdown 导入/导出
 - 分类体系：按技术栈分类（Linux、Kubernetes、Docker、Go、Java 等）
-- 评论互动：游客评论 + 登录用户评论、回复、点赞
-- 留言板：游客留言
-- AI 问答：基于文章内容的 DeepSeek 对话（`/blog/articles/:id/ai/chat`）
-- 用户体系：注册、登录、资料编辑、管理员后台
-- 数据统计：阅读量、点赞数、在线人数、访问统计
-- 定时爬虫：每 2 小时抓取 CSDN 技术文章入库
+- 章节学习：按标签组织章节与文章，形成系列教程（`/blog/chapters/:tag`）
+- 评论互动：游客评论 + 登录用户评论、回复、点赞，后台可审核/删除
+- 留言板：游客留言、登录后可删除
+- 点赞与收藏：文章点赞/收藏、评论点赞，登录用户可查看我的点赞/收藏列表
+- AI 问答：基于文章内容的 DeepSeek 对话（SSE 流式，`/blog/articles/:id/ai/chat`）
+- 用户体系：注册、登录、资料编辑、修改密码、头像上传
+- 管理后台：文章、评论、标签、分类、章节、站点设置、文件（OSS 图片）管理
+- 数据统计：阅读量、点赞、收藏、热门文章、7 天访问趋势、访问时长、在线状态
+- 天气查询：和风天气，后端代理避免暴露 API Key
+- 订阅输出：RSS / Sitemap（`/feed.xml`、`/rss.xml`、`/sitemap.xml`）
+- CSDN 爬虫：设置 `BLOG_CRAWL_ON_START=1` 时，启动后一次性批量抓取技术文章入库
