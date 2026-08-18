@@ -9,14 +9,11 @@ import (
 // registerRoutes 注册路由
 func registerRoutes(
 	r *gin.Engine,
-	authService *service.AuthService,
 	articleService *service.ArticleService,
 	categoryService *service.CategoryService,
 	tagService *service.TagService,
 	commentService *service.CommentService,
-	chapterService *service.ChapterService,
 	statsService *service.StatsService,
-	settingsService *service.SettingsService,
 	fileService *service.FileService,
 	blogService *service.BlogService,
 	aiService *service.AIService,
@@ -29,15 +26,6 @@ func registerRoutes(
 	r.GET("/sitemap.xml", articleService.Sitemap)
 	r.GET("/feed.xml", articleService.RSS)
 	r.GET("/rss.xml", articleService.RSS)
-
-	// 管理后台认证路由（不需要 JWT 验证）
-	auth := r.Group("/auth")
-	{
-		auth.POST("/login", authService.Login)
-		auth.POST("/logout", authService.Logout)
-		auth.GET("/profile", middleware.JWTAuth(), authService.GetProfile)
-		auth.PUT("/profile", middleware.JWTAuth(), authService.UpdateProfile)
-	}
 
 	// 博客前台认证路由（不需要 JWT 验证）
 	blogAuth := r.Group("/blog/auth")
@@ -53,10 +41,9 @@ func registerRoutes(
 	blog := r.Group("/blog")
 	{
 		// 文章相关
-		blog.GET("/articles", articleService.List)                           // 文章列表
-		blog.GET("/articles/search", articleService.Search)                  // 搜索文章
-		blog.GET("/articles/archive", articleService.Archive)                // 归档文章
-		blog.GET("/articles/:id/related", articleService.GetRelatedArticles) // 获取相关文章
+		blog.GET("/articles", articleService.List)            // 文章列表
+		blog.GET("/articles/search", articleService.Search)   // 搜索文章
+		blog.GET("/articles/archive", articleService.Archive) // 归档文章
 
 		// 分类和标签
 		blog.GET("/categories", categoryService.List) // 分类列表
@@ -67,9 +54,6 @@ func registerRoutes(
 		blog.GET("/feed.xml", articleService.RSS)
 		blog.GET("/rss.xml", articleService.RSS)
 
-		// 章节
-		blog.GET("/chapters/:tag", chapterService.GetChaptersByTag) // 获取标签下的章节及文章
-
 		// 统计
 		blog.GET("/stats", statsService.GetStats)                    // 站点统计
 		blog.GET("/stats/hot-articles", statsService.GetHotArticles) // 热门文章
@@ -79,9 +63,6 @@ func registerRoutes(
 
 		// 文章 AI 问答
 		blog.POST("/articles/:id/ai/chat", aiService.ChatAboutArticleStream) // 基于文章内容 AI 问答(SSE 流式)
-
-		// 站点设置（公开访问，用于前端显示备案信息等）
-		blog.GET("/settings", settingsService.GetPublic) // 获取站点设置
 
 		// 天气（后端代理和风天气，避免暴露 API Key）
 		blog.GET("/weather", weatherService.GetWeather) // 获取天气
@@ -117,11 +98,6 @@ func registerRoutes(
 		blogAuthed.POST("/articles/:id/favorite", blogService.FavoriteArticle)
 		blogAuthed.DELETE("/articles/:id/favorite", blogService.UnfavoriteArticle)
 
-		// 用户点赞和收藏列表
-		blogAuthed.GET("/user/likes", blogService.GetUserLikes)
-		blogAuthed.GET("/user/favorites", blogService.GetUserFavorites)
-		blogAuthed.GET("/user/stats", blogService.GetUserStats)
-
 		// 评论
 		blogAuthed.POST("/comments/:id/like", blogService.LikeComment)
 		blogAuthed.DELETE("/comments/:id/like", blogService.UnlikeComment)
@@ -142,9 +118,6 @@ func registerRoutes(
 			articles.GET("", articleService.List)
 			articles.GET("/:id", articleService.GetByID)
 			articles.POST("", articleService.Create)
-			articles.POST("/import", articleService.ImportMarkdown)
-			articles.POST("/export", articleService.Export)
-			articles.GET("/pinned", articleService.ListPinned)
 			articles.POST("/batch-delete", articleService.BatchDelete)
 			articles.PUT("/:id", articleService.Update)
 			articles.PATCH("/:id/status", articleService.UpdateStatus)
@@ -176,42 +149,16 @@ func registerRoutes(
 			categories.DELETE("/:id", categoryService.Delete)
 		}
 
-		// 章节管理
-		chapters := api.Group("/chapters")
-		{
-			chapters.GET("", chapterService.GetChapters)
-			chapters.GET("/:id", chapterService.GetChapter)
-			chapters.POST("", chapterService.CreateChapter)
-			chapters.PUT("/:id", chapterService.UpdateChapter)
-			chapters.DELETE("/:id", chapterService.DeleteChapter)
-		}
-
-		// 统计
-		stats := api.Group("/stats")
-		{
-			stats.GET("", statsService.GetStats)
-			stats.GET("/hot-articles", statsService.GetHotArticles)
-		}
-
 		// 数据分析
 		analytics := api.Group("/analytics")
 		{
 			analytics.GET("/visits/7days", analyticsService.Get7DaysVisits)
 		}
 
-		// 设置
-		settings := api.Group("/settings")
-		{
-			settings.GET("", settingsService.Get)
-			settings.PUT("", settingsService.Update)
-		}
-
 		// 文件上传
 		files := api.Group("/files")
 		{
 			files.POST("/upload", fileService.Upload)
-			files.GET("", fileService.List)
-			files.DELETE("/:id", fileService.Delete)
 		}
 	}
 }

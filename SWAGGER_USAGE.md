@@ -4,9 +4,9 @@
 
 启动服务后，访问以下地址：
 
-- **Swagger UI**: http://localhost:8888/swagger/index.html
-- **API JSON**: http://localhost:8888/swagger/doc.json
-- **API YAML**: http://localhost:8888/swagger/doc.yaml
+- **Swagger UI**: http://localhost:8890/swagger/index.html
+- **API JSON**: http://localhost:8890/swagger/doc.json
+- **API YAML**: http://localhost:8890/swagger/doc.yaml
 
 ## 如何添加新接口文档
 

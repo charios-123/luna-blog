@@ -15,16 +15,6 @@ export function changePassword(data: { old_password: string; new_password: strin
   return request.put('/blog/auth/password', data).then((r) => r.data)
 }
 
-/** 更新博主资料（About 页展示用） */
-export function updateBloggerInfo(data: Record<string, any>) {
-  return request.put('/blog/blogger', data).then((r) => r.data)
-}
-
-/** 获取博主资料 */
-export function getBloggerInfo() {
-  return request.get('/blog/blogger').then((r) => r.data).catch(() => null)
-}
-
 /** 上传文件（头像等） */
 export function uploadFile(file: File, folder = 'avatars') {
   const formData = new FormData()

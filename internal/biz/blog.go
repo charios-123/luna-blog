@@ -30,8 +30,6 @@ type BlogUseCase interface {
 	UnlikeArticle(userID, articleID uint) error
 	// IsLiked 检查是否已点赞
 	IsLiked(userID, articleID uint) (bool, error)
-	// GetUserLikes 获取用户点赞列表
-	GetUserLikes(userID uint, page, limit int) (*dto.LikeListResponse, error)
 
 	// FavoriteArticle 收藏文章
 	FavoriteArticle(userID, articleID uint) error
@@ -39,8 +37,6 @@ type BlogUseCase interface {
 	UnfavoriteArticle(userID, articleID uint) error
 	// IsFavorited 检查是否已收藏
 	IsFavorited(userID, articleID uint) (bool, error)
-	// GetUserFavorites 获取用户收藏列表
-	GetUserFavorites(userID uint, page, limit int) (*dto.FavoriteListResponse, error)
 
 	// CreateComment 创建评论
 	CreateComment(req *dto.CreateCommentRequest) (*dto.CommentResponse, error)
@@ -52,8 +48,6 @@ type BlogUseCase interface {
 	UnlikeComment(userID, commentID uint) error
 	// DeleteComment 删除评论
 	DeleteComment(commentID, userID uint) error
-	// GetUserStats 获取用户统计信息
-	GetUserStats(userID uint) (*dto.UserStatsResponse, error)
 	// UpdateProfile 更新用户资料
 	UpdateProfile(userID uint, req *dto.UpdateProfileRequest) (*po.User, error)
 	// ChangePassword 修改密码
@@ -317,82 +311,6 @@ func (uc *blogUseCase) IsLiked(userID, articleID uint) (bool, error) {
 	return uc.data.LikeRepo.Exists(articleID, userID)
 }
 
-// GetUserLikes 获取用户点赞列表
-func (uc *blogUseCase) GetUserLikes(userID uint, page, limit int) (*dto.LikeListResponse, error) {
-	likes, total, err := uc.data.LikeRepo.ListByUser(userID, page, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	likeList := make([]dto.LikeInfo, 0, len(likes))
-	for _, like := range likes {
-		articleResp := &dto.ArticleResponse{
-			ID:            like.Article.ID,
-			Title:         like.Article.Title,
-			Summary:       like.Article.Summary,
-			Cover:         like.Article.Cover,
-			AuthorID:      like.Article.AuthorID,
-			CategoryID:    like.Article.CategoryID,
-			Status:        like.Article.Status,
-			IsPinned:      like.Article.IsPinned,
-			PinSort:       like.Article.PinSort,
-			PinnedAt:      like.Article.PinnedAt,
-			ViewCount:     like.Article.ViewCount,
-			LikeCount:     like.Article.LikeCount,
-			FavoriteCount: like.Article.FavoriteCount,
-			CommentCount:  like.Article.CommentCount,
-			CreatedAt:     like.Article.CreatedAt,
-		}
-
-		// 添加作者信息
-		if like.Article.Author.ID > 0 {
-			articleResp.Author = &dto.AuthorInfo{
-				ID:       like.Article.Author.ID,
-				Username: like.Article.Author.Username,
-				Nickname: like.Article.Author.Nickname,
-				Avatar:   like.Article.Author.Avatar,
-			}
-		}
-
-		// 添加分类信息
-		if like.Article.Category.ID > 0 {
-			articleResp.Category = &dto.CategoryInfo{
-				ID:          like.Article.Category.ID,
-				Name:        like.Article.Category.Name,
-				Description: like.Article.Category.Description,
-			}
-		}
-
-		// 添加标签信息
-		if len(like.Article.Tags) > 0 {
-			tags := make([]dto.TagInfo, 0, len(like.Article.Tags))
-			for _, tag := range like.Article.Tags {
-				tags = append(tags, dto.TagInfo{
-					ID:    tag.ID,
-					Name:  tag.Name,
-					Color: tag.Color,
-				})
-			}
-			articleResp.Tags = tags
-		}
-
-		likeList = append(likeList, dto.LikeInfo{
-			ID:        like.ID,
-			ArticleID: like.ArticleID,
-			UserID:    like.UserID,
-			CreatedAt: like.CreatedAt,
-			Article:   articleResp,
-		})
-	}
-
-	return &dto.LikeListResponse{
-		List:  likeList,
-		Total: total,
-		Page:  page,
-		Limit: limit,
-	}, nil
-}
-
 // FavoriteArticle 收藏文章
 func (uc *blogUseCase) FavoriteArticle(userID, articleID uint) error {
 	// 检查是否已收藏
@@ -430,82 +348,6 @@ func (uc *blogUseCase) UnfavoriteArticle(userID, articleID uint) error {
 // IsFavorited 检查是否已收藏
 func (uc *blogUseCase) IsFavorited(userID, articleID uint) (bool, error) {
 	return uc.data.FavoriteRepo.Exists(articleID, userID)
-}
-
-// GetUserFavorites 获取用户收藏列表
-func (uc *blogUseCase) GetUserFavorites(userID uint, page, limit int) (*dto.FavoriteListResponse, error) {
-	favorites, total, err := uc.data.FavoriteRepo.ListByUser(userID, page, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	favoriteList := make([]dto.FavoriteInfo, 0, len(favorites))
-	for _, favorite := range favorites {
-		articleResp := &dto.ArticleResponse{
-			ID:            favorite.Article.ID,
-			Title:         favorite.Article.Title,
-			Summary:       favorite.Article.Summary,
-			Cover:         favorite.Article.Cover,
-			AuthorID:      favorite.Article.AuthorID,
-			CategoryID:    favorite.Article.CategoryID,
-			Status:        favorite.Article.Status,
-			IsPinned:      favorite.Article.IsPinned,
-			PinSort:       favorite.Article.PinSort,
-			PinnedAt:      favorite.Article.PinnedAt,
-			ViewCount:     favorite.Article.ViewCount,
-			LikeCount:     favorite.Article.LikeCount,
-			FavoriteCount: favorite.Article.FavoriteCount,
-			CommentCount:  favorite.Article.CommentCount,
-			CreatedAt:     favorite.Article.CreatedAt,
-		}
-
-		// 添加作者信息
-		if favorite.Article.Author.ID > 0 {
-			articleResp.Author = &dto.AuthorInfo{
-				ID:       favorite.Article.Author.ID,
-				Username: favorite.Article.Author.Username,
-				Nickname: favorite.Article.Author.Nickname,
-				Avatar:   favorite.Article.Author.Avatar,
-			}
-		}
-
-		// 添加分类信息
-		if favorite.Article.Category.ID > 0 {
-			articleResp.Category = &dto.CategoryInfo{
-				ID:          favorite.Article.Category.ID,
-				Name:        favorite.Article.Category.Name,
-				Description: favorite.Article.Category.Description,
-			}
-		}
-
-		// 添加标签信息
-		if len(favorite.Article.Tags) > 0 {
-			tags := make([]dto.TagInfo, 0, len(favorite.Article.Tags))
-			for _, tag := range favorite.Article.Tags {
-				tags = append(tags, dto.TagInfo{
-					ID:    tag.ID,
-					Name:  tag.Name,
-					Color: tag.Color,
-				})
-			}
-			articleResp.Tags = tags
-		}
-
-		favoriteList = append(favoriteList, dto.FavoriteInfo{
-			ID:        favorite.ID,
-			ArticleID: favorite.ArticleID,
-			UserID:    favorite.UserID,
-			CreatedAt: favorite.CreatedAt,
-			Article:   articleResp,
-		})
-	}
-
-	return &dto.FavoriteListResponse{
-		List:  favoriteList,
-		Total: total,
-		Page:  page,
-		Limit: limit,
-	}, nil
 }
 
 // CreateComment 创建评论
@@ -764,37 +606,6 @@ func (uc *blogUseCase) DeleteComment(commentID, userID uint) error {
 	}
 
 	return nil
-}
-
-// GetUserStats 获取用户统计信息 
-func (uc *blogUseCase) GetUserStats(userID uint) (*dto.UserStatsResponse, error) {
-	// 获取点赞数
-	likesCount, err := uc.data.LikeRepo.CountByUser(userID)
-	if err != nil {
-		likesCount = 0
-	}
-
-	// 获取收藏数
-	favoritesCount, err := uc.data.FavoriteRepo.CountByUser(userID)
-	if err != nil {
-		favoritesCount = 0
-	}
-
-	// 获取评论数
-	commentsCount, err := uc.data.CommentRepo.CountByUser(userID)
-	if err != nil {
-		commentsCount = 0
-	}
-
-	// 暂时将文章数设为0（可以后续根据需求添加）
-	var articlesCount int64 = 0
-
-	return &dto.UserStatsResponse{
-		ArticlesCount:  articlesCount,
-		LikesCount:     likesCount,
-		FavoritesCount: favoritesCount,
-		CommentsCount:  commentsCount,
-	}, nil
 }
 
 // UpdateProfile 更新用户资料

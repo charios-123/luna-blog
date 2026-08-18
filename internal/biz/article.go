@@ -35,8 +35,6 @@ type ArticleUseCase interface {
 	UpdateStatus(id uint, status int) error
 	// UpdatePin 更新文章置顶状态
 	UpdatePin(id uint, isPinned bool) error
-	// ListPinned 获取置顶文章
-	ListPinned() ([]dto.ArticleListItem, error)
 	// Search 搜索文章
 	Search(keyword string, page, limit int, sort string, categoryID, tagID uint) (*dto.PageResponse, error)
 	// Archive 获取归档文章（按月份分组）
@@ -45,12 +43,8 @@ type ArticleUseCase interface {
 	GetDefaultCategoryID() (uint, error)
 	// BatchDelete 批量删除
 	BatchDelete(articleIDs []uint) error
-	// GetRelatedArticles 获取相关文章
-	GetRelatedArticles(id uint, limit int) ([]dto.ArticleListItem, error)
 	// ListPublished 获取已发布文章
 	ListPublished(limit int) ([]dto.ArticleListItem, error)
-	// Export 导出文章为 ZIP 文件
-	Export(articleIDs []uint) ([]byte, error)
 	// CrawlAndSave 抓取指定关键词的 CSDN 文章并入库(去重)
 	// keyword: 搜索关键词(如 golang, kubernetes)
 	// categoryID: 入库后归属分类 ID
@@ -323,21 +317,6 @@ func (uc *articleUseCase) UpdatePin(id uint, isPinned bool) error {
 	}
 
 	return uc.data.ArticleRepo.UpdatePinned(id, false, 0, nil)
-}
-
-// ListPinned 获取置顶文章
-func (uc *articleUseCase) ListPinned() ([]dto.ArticleListItem, error) {
-	articles, err := uc.data.ArticleRepo.ListPinned()
-	if err != nil {
-		return nil, errors.New("查询置顶文章失败")
-	}
-
-	items := make([]dto.ArticleListItem, 0, len(articles))
-	for _, article := range articles {
-		items = append(items, uc.convertToArticleListItem(article))
-	}
-
-	return items, nil
 }
 
 func nextPinSort(articles []*po.Article) int {
@@ -645,21 +624,6 @@ func (uc *articleUseCase) BatchDelete(articleIDs []uint) error {
 	return nil
 }
 
-// GetRelatedArticles 获取相关文章
-func (uc *articleUseCase) GetRelatedArticles(id uint, limit int) ([]dto.ArticleListItem, error) {
-	articles, err := uc.data.ArticleRepo.GetRelatedArticles(id, limit)
-	if err != nil {
-		return nil, errors.New("获取相关文章失败: " + err.Error())
-	}
-
-	items := make([]dto.ArticleListItem, 0, len(articles))
-	for _, article := range articles {
-		items = append(items, uc.convertToArticleListItem(article))
-	}
-
-	return items, nil
-}
-
 // ListPublished 获取已发布文章
 func (uc *articleUseCase) ListPublished(limit int) ([]dto.ArticleListItem, error) {
 	articles, err := uc.data.ArticleRepo.ListPublished(limit)
@@ -673,33 +637,6 @@ func (uc *articleUseCase) ListPublished(limit int) ([]dto.ArticleListItem, error
 	}
 
 	return items, nil
-}
-
-// Export 导出文章为 ZIP 文件
-func (uc *articleUseCase) Export(articleIDs []uint) ([]byte, error) {
-	var articles []*po.Article
-	var err error
-
-	// 获取文章列表
-	if len(articleIDs) == 0 {
-		// 获取所有已发布的文章
-		articles, _, err = uc.data.ArticleRepo.List(1, 10000, 0, 0, 0, "1", "", "created_at DESC")
-	} else {
-		// 获取指定ID的文章
-		articles, err = uc.data.ArticleRepo.FindByIDs(articleIDs)
-	}
-
-	if err != nil {
-		return nil, errors.New("获取文章列表失败: " + err.Error())
-	}
-
-	if len(articles) == 0 {
-		return nil, errors.New("没有找到要导出的文章")
-	}
-
-	// 调用导出工具创建ZIP
-	exporter := mdutils.NewArticleExporter()
-	return exporter.ExportToZip(articles)
 }
 
 // CrawlAndSave 抓取 CSDN 文章并入库(去重)

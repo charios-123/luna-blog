@@ -29,12 +29,7 @@ export function getArticleDetail(id: number | string) {
   return request.get(`/blog/articles/${id}`).then((r) => r.data)
 }
 
-/** 前台：相关文章推荐 */
-export function getRelatedArticles(id: number | string) {
-  return request.get(`/blog/articles/${id}/related`).then((r) => r.data)
-}
-
-/* ====================== 管理后台（占位，后续对接真实 API） ====================== */
+/* ====================== 管理后台 ====================== */
 
 /** 管理端：文章列表 */
 export function listAdminArticles(params: ListParams = {}) {
@@ -86,16 +81,6 @@ export function likeArticle(id: number | string) {
 /** 取消点赞 */
 export function unlikeArticle(id: number | string) {
   return request.delete(`/blog/articles/${id}/like`).then((r) => r.data)
-}
-
-/** 收藏 */
-export function collectArticle(id: number | string) {
-  return request.post(`/blog/articles/${id}/collect`).then((r) => r.data)
-}
-
-/** 取消收藏 */
-export function uncollectArticle(id: number | string) {
-  return request.delete(`/blog/articles/${id}/collect`).then((r) => r.data)
 }
 
 /** 评论列表 */

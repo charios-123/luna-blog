@@ -6,7 +6,6 @@ import (
 
 // Biz 业务逻辑层结构
 type Biz struct {
-	AuthUseCase     AuthUseCase
 	ArticleUseCase  ArticleUseCase
 	CategoryUseCase CategoryUseCase
 	TagUseCase      TagUseCase
@@ -18,7 +17,6 @@ type Biz struct {
 // NewBiz 创建业务逻辑层实例
 func NewBiz(d *data.Data) *Biz {
 	return &Biz{
-		AuthUseCase:     NewAuthUseCase(d),
 		ArticleUseCase:  NewArticleUseCase(d),
 		CategoryUseCase: NewCategoryUseCase(d),
 		TagUseCase:      NewTagUseCase(d),

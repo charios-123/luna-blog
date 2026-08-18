@@ -3,10 +3,10 @@ package service
 import (
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"github.com/charios-123/luna-blog/internal/biz"
 	"github.com/charios-123/luna-blog/internal/model/dto"
 	"github.com/charios-123/luna-blog/pkg/response"
+	"github.com/gin-gonic/gin"
 )
 
 // BlogService 博客服务
@@ -238,60 +238,6 @@ func (s *BlogService) UnfavoriteArticle(c *gin.Context) {
 	}
 
 	response.Success(c, nil)
-}
-
-// GetUserLikes 获取用户点赞列表
-// @Summary 获取用户点赞列表
-// @Description 获取当前用户点赞的文章列表
-// @Tags 博客前台
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param page query int false "页码" default(1)
-// @Param limit query int false "每页数量" default(10)
-// @Success 200 {object} response.Response "获取成功"
-// @Failure 401 {object} response.Response "未授权"
-// @Failure 500 {object} response.Response "服务器错误"
-// @Router /blog/user/likes [get]
-func (s *BlogService) GetUserLikes(c *gin.Context) {
-	userID := c.GetUint("user_id")
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-
-	resp, err := s.blogUseCase.GetUserLikes(userID, page, limit)
-	if err != nil {
-		response.ServerError(c, err.Error())
-		return
-	}
-
-	response.Success(c, resp)
-}
-
-// GetUserFavorites 获取用户收藏列表
-// @Summary 获取用户收藏列表
-// @Description 获取当前用户收藏的文章列表
-// @Tags 博客前台
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param page query int false "页码" default(1)
-// @Param limit query int false "每页数量" default(10)
-// @Success 200 {object} response.Response "获取成功"
-// @Failure 401 {object} response.Response "未授权"
-// @Failure 500 {object} response.Response "服务器错误"
-// @Router /blog/user/favorites [get]
-func (s *BlogService) GetUserFavorites(c *gin.Context) {
-	userID := c.GetUint("user_id")
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-
-	resp, err := s.blogUseCase.GetUserFavorites(userID, page, limit)
-	if err != nil {
-		response.ServerError(c, err.Error())
-		return
-	}
-
-	response.Success(c, resp)
 }
 
 // CreateComment 创建评论
@@ -544,29 +490,6 @@ func (s *BlogService) DeleteGuestbookMessage(c *gin.Context) {
 	}
 
 	response.Success(c, nil)
-}
-
-// GetUserStats 获取用户统计信息
-// @Summary 获取用户统计信息
-// @Description 获取当前用户的统计信息（点赞数、收藏数等）
-// @Tags 博客前台
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} response.Response "获取成功"
-// @Failure 401 {object} response.Response "未授权"
-// @Failure 500 {object} response.Response "服务器错误"
-// @Router /blog/user/stats [get]
-func (s *BlogService) GetUserStats(c *gin.Context) {
-	userID := c.GetUint("user_id")
-
-	resp, err := s.blogUseCase.GetUserStats(userID)
-	if err != nil {
-		response.ServerError(c, err.Error())
-		return
-	}
-
-	response.Success(c, resp)
 }
 
 // UpdateProfile 更新用户资料

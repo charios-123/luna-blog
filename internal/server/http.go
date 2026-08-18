@@ -54,14 +54,11 @@ func NewHTTPServer(b *biz.Biz, d *data.Data) *HTTPServer {
 	})
 
 	// 初始化服务
-	authService := service.NewAuthService(b.AuthUseCase)
 	articleService := service.NewArticleService(b.ArticleUseCase)
 	categoryService := service.NewCategoryService(b.CategoryUseCase)
 	tagService := service.NewTagService(b.TagUseCase)
 	commentService := service.NewCommentService(b.CommentUseCase)
-	chapterService := service.NewChapterService(d)
 	statsService := service.NewStatsService(d)
-	settingsService := service.NewSettingsService(d)
 	fileService := service.NewFileService(d)
 	blogService := service.NewBlogService(b.BlogUseCase)
 	aiService := service.NewAIService(b.AIUseCase)
@@ -71,7 +68,7 @@ func NewHTTPServer(b *biz.Biz, d *data.Data) *HTTPServer {
 	analyticsService := service.NewAnalyticsService(d)
 
 	// 注册路由
-	registerRoutes(r, authService, articleService, categoryService, tagService, commentService, chapterService, statsService, settingsService, fileService, blogService, aiService, weatherService, onlineService, visitService, analyticsService)
+	registerRoutes(r, articleService, categoryService, tagService, commentService, statsService, fileService, blogService, aiService, weatherService, onlineService, visitService, analyticsService)
 
 	// 获取端口
 	port := viper.GetInt("server.port")

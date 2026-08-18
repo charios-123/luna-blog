@@ -3,9 +3,7 @@ package service
 import (
 	"encoding/xml"
 	"fmt"
-	"io"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -268,17 +266,6 @@ func (s *ArticleService) UpdatePin(c *gin.Context) {
 	response.Success(c, nil)
 }
 
-// ListPinned 获取置顶文章列表
-func (s *ArticleService) ListPinned(c *gin.Context) {
-	items, err := s.articleUseCase.ListPinned()
-	if err != nil {
-		response.ServerError(c, err.Error())
-		return
-	}
-
-	response.Success(c, items)
-}
-
 // Search 搜索文章
 // @Summary 搜索文章
 // @Description 根据关键词搜索文章
@@ -349,126 +336,6 @@ func (s *ArticleService) Archive(c *gin.Context) {
 	response.SuccessWithPage(c, resp.Data, resp.Total, resp.Page, resp.Limit)
 }
 
-// ImportMarkdown 批量导入 Markdown 文件
-// @Summary 批量导入Markdown文件
-// @Description 批量导入Markdown文件为文章
-// @Tags 文章管理
-// @Accept multipart/form-data
-// @Produce json
-// @Security BearerAuth
-// @Param files formData file true "Markdown文件（可多个）"
-// @Success 200 {object} response.Response "导入成功"
-// @Failure 400 {object} response.Response "请求参数错误"
-// @Failure 401 {object} response.Response "未授权"
-// @Router /articles/import [post]
-func (s *ArticleService) ImportMarkdown(c *gin.Context) {
-	// 获取作者 ID
-	adminID, exists := c.Get("admin_id")
-	if !exists {
-		response.Unauthorized(c, "未授权")
-		return
-	}
-
-	// 解析 multipart form
-	form, err := c.MultipartForm()
-	if err != nil {
-		response.BadRequest(c, "解析表单失败: "+err.Error())
-		return
-	}
-
-	files := form.File["files"]
-	if len(files) == 0 {
-		response.BadRequest(c, "没有上传文件")
-		return
-	}
-
-	// 获取默认分类ID（使用第一个可用分类）
-	defaultCategoryID, err := s.articleUseCase.GetDefaultCategoryID()
-	if err != nil {
-		response.BadRequest(c, "获取默认分类失败: "+err.Error())
-		return
-	}
-
-	successCount := 0
-	failedFiles := []string{}
-
-	// 遍历所有文件
-	for _, file := range files {
-		// 检查文件扩展名
-		ext := strings.ToLower(filepath.Ext(file.Filename))
-		if ext != ".md" && ext != ".markdown" {
-			failedFiles = append(failedFiles, file.Filename+": 不支持的文件格式")
-			continue
-		}
-
-		// 打开文件
-		f, err := file.Open()
-		if err != nil {
-			failedFiles = append(failedFiles, file.Filename+": 打开文件失败")
-			continue
-		}
-
-		// 读取文件内容
-		content, err := io.ReadAll(f)
-		f.Close()
-		if err != nil {
-			failedFiles = append(failedFiles, file.Filename+": 读取文件失败")
-			continue
-		}
-
-		// 提取文件名作为标题（去掉扩展名）
-		title := strings.TrimSuffix(file.Filename, ext)
-
-		// 创建文章
-		req := &dto.CreateArticleRequest{
-			Title:           title,
-			ContentMarkdown: string(content),
-			Summary:         generateSummary(string(content), 200),
-			Status:          0, // 默认为草稿
-			CategoryID:      defaultCategoryID,
-			TagIDs:          []uint{},
-		}
-
-		_, err = s.articleUseCase.Create(req, adminID.(uint))
-		if err != nil {
-			failedFiles = append(failedFiles, file.Filename+": 创建文章失败 - "+err.Error())
-			continue
-		}
-
-		successCount++
-	}
-
-	result := map[string]interface{}{
-		"total":   len(files),
-		"success": successCount,
-		"failed":  len(failedFiles),
-	}
-
-	if len(failedFiles) > 0 {
-		result["failed_files"] = failedFiles
-	}
-
-	response.Success(c, result)
-}
-
-// generateSummary 从内容中生成摘要
-func generateSummary(content string, maxLen int) string {
-	// 移除 Markdown 标记
-	content = strings.ReplaceAll(content, "#", "")
-	content = strings.ReplaceAll(content, "*", "")
-	content = strings.ReplaceAll(content, "_", "")
-	content = strings.ReplaceAll(content, "`", "")
-	content = strings.ReplaceAll(content, "\n", " ")
-	content = strings.TrimSpace(content)
-
-	// 截取指定长度
-	runes := []rune(content)
-	if len(runes) > maxLen {
-		return string(runes[:maxLen]) + "..."
-	}
-	return content
-}
-
 // BatchDelete 批量删除
 // @Summary 批量删除文章
 // @Description 批量删除多篇文章
@@ -497,39 +364,6 @@ func (s *ArticleService) BatchDelete(c *gin.Context) {
 	response.Success(c, gin.H{
 		"deleted": len(req.ArticleIDs),
 	})
-}
-
-// GetRelatedArticles 获取相关文章
-// @Summary 获取相关文章
-// @Description 根据标签、分类和热度获取相关文章
-// @Tags 博客前台
-// @Accept json
-// @Produce json
-// @Param id path int true "文章ID"
-// @Param limit query int false "返回数量" default(6)
-// @Success 200 {object} response.Response "获取成功"
-// @Failure 400 {object} response.Response "请求参数错误"
-// @Failure 500 {object} response.Response "服务器错误"
-// @Router /blog/articles/{id}/related [get]
-func (s *ArticleService) GetRelatedArticles(c *gin.Context) {
-	var req dto.IDRequest
-	if err := c.ShouldBindUri(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "6"))
-	if limit <= 0 || limit > 12 {
-		limit = 6
-	}
-
-	result, err := s.articleUseCase.GetRelatedArticles(req.ID, limit)
-	if err != nil {
-		response.ServerError(c, err.Error())
-		return
-	}
-
-	response.Success(c, result)
 }
 
 type sitemapURLSet struct {
@@ -699,36 +533,4 @@ func getPublicBaseURL(c *gin.Context) string {
 	}
 
 	return strings.TrimRight(proto+"://"+host, "/")
-}
-
-// Export 批量导出文章为 ZIP
-// @Summary 批量导出文章
-// @Description 将指定或所有文章导出为 ZIP 文件，包含 Markdown 文件和图片
-// @Tags 文章管理
-// @Accept json
-// @Produce application/zip
-// @Security BearerAuth
-// @Param request body dto.ExportArticleRequest true "导出请求，article_ids 为空表示导出全部"
-// @Success 200 "ZIP 文件"
-// @Failure 400 {object} response.Response "请求参数错误"
-// @Failure 401 {object} response.Response "未授权"
-// @Failure 500 {object} response.Response "服务器错误"
-// @Router /articles/export [post]
-func (s *ArticleService) Export(c *gin.Context) {
-	var req dto.ExportArticleRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
-	zipData, err := s.articleUseCase.Export(req.ArticleIDs)
-	if err != nil {
-		response.ServerError(c, err.Error())
-		return
-	}
-
-	// 设置响应头以便下载 ZIP 文件
-	c.Header("Content-Disposition", "attachment; filename=articles.zip")
-	c.Header("Content-Type", "application/zip")
-	c.Data(200, "application/zip", zipData)
 }

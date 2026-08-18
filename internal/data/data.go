@@ -17,7 +17,6 @@ type Data struct {
 	CommentLikeRepo CommentLikeRepo
 	ViewRepo        ViewRepo
 	FileRepo        FileRepo
-	SettingRepo     SettingRepo
 }
 
 // NewData 创建数据层实例
@@ -34,7 +33,6 @@ func NewData(db *gorm.DB) (*Data, error) {
 		CommentLikeRepo: NewCommentLikeRepo(db),
 		ViewRepo:        NewViewRepo(db),
 		FileRepo:        NewFileRepo(db),
-		SettingRepo:     NewSettingRepo(db),
 	}, nil
 }
 
