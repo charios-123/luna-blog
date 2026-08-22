@@ -10,6 +10,7 @@
 
 - [Luna Blog](#luna-blog)
   - [目录](#目录)
+  - [页面展示](#页面展示)
   - [技术栈](#技术栈)
   - [项目架构](#项目架构)
   - [目录结构](#目录结构)
@@ -22,6 +23,62 @@
   - [API 文档](#api-文档)
   - [运维工具](#运维工具)
   - [主要功能](#主要功能)
+
+## 页面展示
+
+> 以下截图基于本地开发环境实际运行效果（前端 `http://localhost:5173`，后端 `http://localhost:8890`）。
+
+### 首页
+
+![首页](./screenshots/01-home.png)
+
+### 登录页
+
+![登录页](./screenshots/02-login.png)
+
+### 文章列表
+
+![文章列表](./screenshots/03-articles.png)
+
+### 文章详情
+
+![文章详情](./screenshots/04-article-detail.png)
+
+### 归档
+
+![归档](./screenshots/05-archive.png)
+
+### 留言板
+
+![留言板](./screenshots/06-guestbook.png)
+
+### 关于
+
+![关于](./screenshots/07-about.png)
+
+### 站点统计
+
+![站点统计](./screenshots/08-stats.png)
+
+### 个人中心（登录后）
+
+![个人中心](./screenshots/09-profile.png)
+
+### 管理后台 - 文章管理
+
+![文章管理](./screenshots/10-admin-articles.png)
+
+### 管理后台 - 分类管理
+
+![分类管理](./screenshots/11-admin-categories.png)
+
+### 管理后台 - 评论管理
+
+![评论管理](./screenshots/12-admin-comments.png)
+
+### 管理后台 - 文章编辑器
+
+![文章编辑器](./screenshots/13-admin-editor.png)
 
 ## 技术栈
 
